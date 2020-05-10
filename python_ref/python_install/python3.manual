@@ -1,0 +1,5 @@
+#1.创建虚拟环境
+pip3 install virtualenv
+virtualenv hariko
+source bin/activate #激活虚拟环境
+deactivate

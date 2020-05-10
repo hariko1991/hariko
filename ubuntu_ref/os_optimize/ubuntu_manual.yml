@@ -1,0 +1,83 @@
+一、防火墙
+sudo apt-get install ufw
+sudo ufw enable
+sudo ufw default deny
+sudo ufw status --查看状态
+二、连接ssh
+sshd_config
+PermitRootLogin yes
+/etc/init.d/ssh restart
+sudo apt-get install openssh-server
+三、网络配置
+/etc/netplan/   --修改位置
+netplan generate  --生成配置文件
+netplan apply --应用修改
+四、apt使用
+使用  http://mirrors.aliyun.com/ubuntu/
+apt-cache search openjdk
+apt update  --更新软件库
+sudo apt-get autoclean   ---清理旧版本的软件缓存 (已经卸载掉的软件包)
+sudo apt-get clean   ---清理所有软件缓存 (电脑上存储的安装包)
+sudo apt-get autoremove   ----删除系统不再使用的孤立软件
+sudo apt install net-tools
+apt-get update:更新安装列表
+apt-get upgrade:升级软件
+apt-get install software_name :安装软件
+apt-get --purge remove  software_name :卸载软件及其配置
+apt-get autoremove software_name:卸载软件及其依赖的安装包
+dpkg --list:罗列已安装软件
+sudo  apt-get  dist-upgrade  升级系统
+sudo   update-manager   -c     -d
+五、同步时间命令：
+sudo apt-get install ntpdate // 安装时间同步工具
+sudo ntpdate cn.pool.ntp.org // 与网络服务器同步时间
+hwclock --systohc   ---将时间写入硬件
+tzselect --选择时区
+sudo date -s MM/DD/YY //修改日期
+sudo date -s hh:mm:ss //修改时间
+sudo hwclock --systohc //非常重要，如果没有这一步的话，后面时间还是不准
+cp /usr/share/zoneinfo/Asia/Shanghai  /etc/localtime
+export TZ='Asia/Shanghai'
+六、
+Ubuntu Linux系统环境变量配置文件： 
+a    /etc/profile : 针对所有用户，第一个被执行的配置文件。就是上面的形式。 
+b    /etc /environment : 在登录时操作系统使用的第二个文件, 系统在读取你自己的profile前,设置环境文件的环境变量。 不需要使用export，直接在path的变量中加入你的地址就行了，分隔符是：。
+c    ~/.profile :  在登录时用到的第三个文件 是.profile文件,针对一个用户,当用户登录时,该文件仅仅执行一次!默认情况下,他设置一些环境变量,执行用户的.bashrc文件。
+d    /etc/bash.bashrc : 为每一个运行bash shell的用户执行此文件.当bash shell被打开时,该文件被读取. 
+e    ~/bash.bashrc : 该文件包含专用于你的bash shell的bash信息,当登录时以及每次打开新的shell时,该该文件被读取。
+七、注释颜色
+vi ~/.vimrc 加入如下内容
+hi Comment ctermfg =blue
+八、系统问题
+a stop job is running for snappy daemon
+/etc/systemd/syste0
+apt-get autoremove 
+彻底卸载删除gnome的相关配置文件
+apt-get purge gnome
+清理安装gnome时候留下的缓存程序软件包
+apt-get autoclean
+apt-get clean
+九、ubuntu网络配置
+vi /etc/netplan/01-network-manager-all.yaml
+netplan apply
+vi /etc/network/interfaces
+vi /etc/systemd/resolved.conf
+/etc/init.d/networking restart
+wpa_passphrase 要连接的WIFI  密码 > xxx.conf
+iwconfig  查看现有接口
+iw dev wlan0 scan 查看附近wifi
+iw dev wlan0 connect ssid key 0:密钥
+iw dev wlan0 connect ssid
+ifdown wlan0
+ifup -v wlan0
+ip route show  查看网关
+systemd-resolve --status 查看DNS
+十、休眠后触摸板失灵
+sudo modprobe -r psmouse
+sudo modprobe psmouse
+
+dpkg -l | grep laptop-mode-tools
+apt-get install laptop-mode-tools
+cat /proc/sys/vm/laptop-mode # 非0表示已经启动
+vi /etc/default/acpi-support 修改 ENABLE_LAPTOP_MODE=true
+

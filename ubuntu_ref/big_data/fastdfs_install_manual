@@ -1,0 +1,26 @@
+./make.sh DESTDIR=/usr/app/fastdfs-6.06
+./make.sh DESTDIR=/usr/app/fastdfs-6.06 install
+
+
+配置文件在 /etc/fdfs 目录下面
+
+
+/etc/init.d/fdfs_trackerd start
+/etc/init.d/fdfs_trackerd stop
+service fdfs_trackerd start
+service fdfs_trackerd stop
+
+/etc/init.d/fdfs_storaged start
+/etc/init.d/fdfs_storaged start
+
+fdfs_monitor /etc/fdfs/storage.conf
+
+fdfs_upload_file /etc/fdfs/client.conf namei.jpeg
+
+
+ http://192.168.0.200:8081/group1/M00/00/00/wKgz6lnduTeAMdrcAAEoRmXZPp870.jpeg
+
+ http://loclahost:8081/group1/M00/00/00/wKgAoV6qkkKAEDF3AAAoKWKCFa4257.png
+
+
+http://loclahost:8081/group1/M00/00/00/wKgAoV63bfiAeojLAABaADRStMM500.xls

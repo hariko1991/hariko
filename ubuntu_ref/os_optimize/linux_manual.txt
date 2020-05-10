@@ -1,0 +1,162 @@
+1.整个硬盘使用情况
+# df -hl 
+2.当前目录使用情况
+# du -hl 
+3.网卡绑定多ip
+# ifconfig eth0:1 192.168.1.99 netmask 255.255.255.0  
+4.设置DNS、网关
+# echo "nameserver 202.16.53.68" >> /etc/resolv.conf
+# route add default gw 192.168.1.1
+6、查询file里面空行的所在行号
+# grep ^$ file
+6、查询file里面空行的所在行号
+# grep abc$ file
+8、打印出file文件第1到第三行
+# sed -n '1,3p' file
+# head -3 file
+10、删除所有空目录
+# find /data -type d -empty -exec rm -rf {} ;
+11、linux下批量删除空文件（大小等于0的文件）的方法
+# find /data -type f -size 0c -exec rm -rf {} ;
+# find /data -type f -size 0c|xargs rm –f
+12、删除五天前的文件
+# find /data -mtime +5 -type f -exec rm -rf {} ;
+13、删除两个文件重复的部份，打印其它
+# cat 1.txt 3.txt |sort |uniq
+14、获取远程服务器主机名
+# echo `ssh $IP cat /etc/sysconfig/network|awk -F = '/hostname/ {print $2}'`
+15、实时监控网卡流量（安装iftop）
+# /usr/local/iftop/sbin/iftop -i eth1 -n
+16、查看系统版本
+# lsb_release -a
+17、强制踢出登陆用户
+# pkill -kill -t pts/1
+18、tar增理备份、还原
+# tar -g king -zcvf kerry_full.tar.gz kerry
+# tar -g king -zcvf kerry_diff_1.tar.gz kerry
+# tar -g king -zcvf kerry_diff_2.tar.gz kerry
+# tar -zxvf kerry_full.tar.gz
+# tar -zxvf kerry_diff_1.tar.gz
+# tar -zxvf kerry_diff_2.tar.gz
+19、将本地80端口的请求转发到8080端口，当前主机外网IP为202.96.85.46
+-A PREROUTING -d 202.96.85.46 -p tcp -m tcp --dport 80 -j DNAT --to-destination 192.168.9.10:8080
+20、在11月份内，每天的早上6点到12点中，每隔2小时执行一次/usr/bin/httpd.sh
+# crontab -e
+0 6-12/2 * 11 * /usr/bin/httpd.sh
+21、查看占用端口8080的进程
+# netstat -tnlp | grep 8080
+lsof -i:8080
+22、在Shell环境下,如何查看远程Linux系统运行了多少时间?
+# ssh user@被监控主机ip "uptime"
+23、查看CPU使用情况的命令
+每5秒刷新一次，最右侧有CPU的占用率的数据
+# vmstat 5
+top 然后按Shift+P，按照进程处理器占用率排序
+# top
+24、查看内存使用情况的命令
+用free命令查看内存使用情况
+# free -m
+top 然后按Shift+M, 按照进程内存占用率排序
+# top
+ 25、查看磁盘i/o
+用iostat查看磁盘/dev/sdc3的磁盘i/o情况，每两秒刷新一次
+# iostat -d -x /dev/sdc3 2
+26、修复文件系统
+# fsck –yt ext3 /
+-t 指定文件系统
+-y 对发现的问题自动回答yes
+ 27、read 命令5秒后自动退出
+# read -t 5 
+28、grep -E -P 是什么意思
+-E, --extended-regexp 采用扩展正规表达式。
+-P，--perl-regexp 采用perl正规表达式
+29、vi编辑器(涉及到修改，添加，查找)
+插入(insert)模式
+i　　　　 光标前插入
+I　　　　 光标行首插入
+a　　　　 光标后插入
+A　　　　 光标行尾插入
+o　　　　 光标所在行下插入一行，行首插入
+O　　　　 光标所在行上插入一行，行首插入
+G　　　　 移至最后一行行首
+nG　　　　移至第n行行首
+n+　　　　下移n行，行首
+n-　　　　上移n行，行首
+:/str/　　　　　　　　　　从当前往右移动到有str的地方
+:?str?　　　　　　　　　　从当前往左移动到有str的地方
+:s/str1/str2/　　　　　 　将找到的第一个str1替换为str2　　
+:s/str2/str2/g　　　　　　将当前行找到的所有str1替换为str2
+:n1,n2s/str1/str2/g　　　 将从n1行至n2行找到的所有的str1替换为str2
+:1,.s/str1/str2/g　　　　 将从第1行至当前行的所有str1替换为str2
+:.,$s/str1/str2/g　　　　 将从当前行至最后一行的所有str1替换为str2
+30、linux服务器之间相互复制文件
+copy 本地文件1.sh到远程192.168.9.10服务器的/data/目录下
+# scp /etc/1.sh king@192.168.9.10:/data/ 
+copy远程192.168.9.10服务器/data/2.sh文件到本地/data/目录
+# scp king@192.168.9.10:/data/2.sh /data/
+31、使用sed命令把test.txt文件的第23行的TEST换成TSET.
+# sed -i '23s/TEST/TSET/' test.txt
+# sed -i '23 s/TEST/TSET/' test.txt
+32、使history命令能显示时间
+# export HISTTIMEFORMAT="%F %T "
+33、如何查看目标主机192.168.0.1开放那些端口
+# nmap -ps 192.168.0.1
+34、如何查看网络连接
+# netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
+35、如何查看当前系统使用了那些库文件
+# ldconfig -v
+36、如何查看网卡的驱动版本
+# ethtool -i eth0
+37、使用tcpdump来监视主机192.168.0.1的tcp的80端口
+# tcpdump tcp port 80 host 192.168.0.1
+38、 如何看其它用户的邮件列表
+# mial -u king
+39、对大文件进行切割
+按每个文件1000行来分割
+# split -l 1000 httperr8007.log httperr
+按照每个文件5m来分割
+# split -b 5m httperr8007.log httperr
+40、合并文件
+取出两个文件的并集(重复的行只保留一份)
+# cat file1 file2 | sort | uniq
+取出两个文件的交集(只留下同时存在于两个文件中的文件)
+# cat file1 file2 | sort | uniq -d
+删除交集，留下其他的行
+# cat file1 file2 | sort | uniq –u
+41、打印文本模式下运行的服务
+# chkconfig --list|awk '$5~/on/{print $1,$5}'
+42、删除0字节文件
+# find -type f -size 0 -exec rm -rf {} ;
+43、查看进程，按内存从大到小排列
+# ps -e  -o "%C  : %p : %z : %a"|sort -k5 -nr
+44、查看http的并发请求数及其TCP连接状态
+# netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
+45、获取IP地址
+# ifconfig eth0|sed -n '2p'|awk '{print $2}'|cut -c 6-30
+perl实现获取IP地址：
+# ifconfig -a | perl -ne 'if ( m/^s*inet (?:addr:)?([d.]+).*?cast/ ) { print qq($1n); exit 0; }'
+46、获取内存大小
+# free -m |grep "Mem" | awk '{print $2}'
+47、查看CPU核心数
+# cat /proc/cpuinfo |grep -c processor
+48、查看磁盘使用情况
+# df -h
+49、查看有多少个活动的PHP-cgi进程
+# netstat -anp | grep php-cgi | grep ^tcp | wc -l
+50、查看硬件制造商
+# dmidecode -s system-product-name
+
+
+
+example:
+sftp -P 2022 dssftp@10.30.89.69
+RDaio3u$
+/dssftp/dspm/dpbs/
+下载文件,判断融担是否有文件
+curl -H "Content-Type:application/json" -X POST --data '[{"certId":"510104198709078030","custName":"多三","queryChannel":"CPMS"}]' http://10.30.89.151:8080/dsfg/api/credit/sign/download.do
+上传文件通知接口
+curl -H "Content-Type:application/json" -X POST --data '{"certId":"440304199003072654","custName":"大二","queryChannel":"DISP","paths":[{"fileType":"ECQA","path":"/dssftp/dspm/dpbs//赵帅强_410322199101081834_dmC2DSBL7RY97ofetYBpnK.pdf"},{"fileType":"EGDAHT","path":"/dssftp/dspm/dpbs//赵帅强_410322199101081834_elg3RdbKKgj5jCocYm0Tc9.pdf"}]}' http://10.30.89.69:8080/dsfg/api/credit/sign/upLoad.do
+
+curl的get方式，请求中带有多参数的，需要将请求中的&符号转义\&，否则只能取到第一个参数的值 ，如
+curl -H "Authorization:Basic MTIzNA=="  http://www.aaaa.com?A=1\&B=2\&C=3
+

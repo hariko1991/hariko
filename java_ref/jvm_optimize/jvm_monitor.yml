@@ -1,0 +1,373 @@
+A、 jps(Java Virtual Machine Process Status Tool)      
+
+    jps主要用来输出JVM中运行的进程状态信息。语法格式如下：
+
+1	jps [options] [hostid]
+ 
+
+    如果不指定hostid就默认为当前主机或服务器。
+
+    命令行参数选项说明如下：
+
+1	-q 不输出类名、Jar名和传入main方法的参数
+2	-m 输出传入main方法的参数
+3	-l 输出main类或Jar的全限名
+4	-v 输出传入JVM的参数
+ 
+
+   比如下面：
+
+1	root@ubuntu:/# jps -m -l
+2	2458 org.artifactory.standalone.main.Main /usr/local/artifactory-2.2.5/etc/jetty.xml
+3	29920 com.sun.tools.hat.Main -port 9998 /tmp/dump.dat
+4	3149 org.apache.catalina.startup.Bootstrap start
+5	30972 sun.tools.jps.Jps -m -l
+6	8247 org.apache.catalina.startup.Bootstrap start
+7	25687 com.sun.tools.hat.Main -port 9999 dump.dat
+8	21711 mrf-center.jar
+
+
+B、 jstack
+
+    jstack主要用来查看某个Java进程内的线程堆栈信息。语法格式如下：
+
+1	jstack [option] pid
+2	jstack [option] executable core
+3	jstack [option] [server-id@]remote-hostname-or-ip
+ 
+
+    命令行参数选项说明如下：
+
+1	-l long listings，会打印出额外的锁信息，在发生死锁时可以用jstack -l pid来观察锁持有情况
+2	-m mixed mode，不仅会输出Java堆栈信息，还会输出C/C++堆栈信息（比如Native方法）
+ 
+
+    jstack可以定位到线程堆栈，根据堆栈信息我们可以定位到具体代码，所以它在JVM性能调优中使用得非常多。下面我们来一个实例找出某个Java进程中最耗费CPU的Java线程并定位堆栈信息，用到的命令有ps、top、printf、jstack、grep。
+
+    第一步先找出Java进程ID，我部署在服务器上的Java应用名称为mrf-center：
+
+1	root@ubuntu:/# ps -ef | grep mrf-center | grep -v grep
+2	root     21711     1  1 14:47 pts/3    00:02:10 java -jar mrf-center.jar
+
+得到进程ID为21711，第二步找出该进程内最耗费CPU的线程，可以使用ps -Lfp pid或者ps -mp pid -o THREAD, tid, time或者top -Hp pid，我这里用第三个，输出如下
+
+  TIME列就是各个Java线程耗费的CPU时间，CPU时间最长的是线程ID为21742的线程，用
+
+1	printf "%x\n" 21742
+ 
+
+    得到21742的十六进制值为54ee，下面会用到。    
+
+    OK，下一步终于轮到jstack上场了，它用来输出进程21711的堆栈信息，然后根据线程ID的十六进制值grep，如下：
+
+1	root@ubuntu:/# jstack 21711 | grep 54ee
+2	"PollIntervalRetrySchedulerThread" prio=10 tid=0x00007f950043e000 nid=0x54ee in Object.wait() [0x00007f94c6eda000]
+ 
+
+    可以看到CPU消耗在PollIntervalRetrySchedulerThread这个类的Object.wait()，我找了下我的代码，定位到下面的代码：
+
+01	// Idle wait
+02	getLog().info("Thread [" + getName() + "] is idle waiting...");
+03	schedulerThreadState = PollTaskSchedulerThreadState.IdleWaiting;
+04	long now = System.currentTimeMillis();
+05	long waitTime = now + getIdleWaitTime();
+06	long timeUntilContinue = waitTime - now;
+07	synchronized(sigLock) {
+08	    try {
+09	        if(!halted.get()) {
+10	            sigLock.wait(timeUntilContinue);
+11	        }
+12	    } 
+13	    catch (InterruptedException ignore) {
+14	    }
+15	}
+ 
+
+    它是轮询任务的空闲等待代码，上面的sigLock.wait(timeUntilContinue)就对应了前面的Object.wait()。
+	
+C、 jmap（Memory Map）和jhat（Java Heap Analysis Tool）
+
+    jmap用来查看堆内存使用状况，一般结合jhat使用。
+
+    jmap语法格式如下：
+
+1	jmap [option] pid
+2	jmap [option] executable core
+3	jmap [option] [server-id@]remote-hostname-or-ip
+ 
+
+    如果运行在64位JVM上，可能需要指定-J-d64命令选项参数。
+
+1	jmap -permstat pid
+ 
+
+    打印进程的类加载器和类加载器加载的持久代对象信息，输出：类加载器名称、对象是否存活（不可靠）、对象地址、父类加载器、已加载的类大小等信息，如下图：
+
+ 使用jmap -heap pid查看进程堆内存使用情况，包括使用的GC算法、堆配置参数和各代中堆内存使用情况。比如下面的例子：
+
+01	root@ubuntu:/# jmap -heap 21711
+02	Attaching to process ID 21711, please wait...
+03	Debugger attached successfully.
+04	Server compiler detected.
+05	JVM version is 20.10-b01
+06	 
+07	using thread-local object allocation.
+08	Parallel GC with 4 thread(s)
+09	 
+10	Heap Configuration:
+11	   MinHeapFreeRatio = 40
+12	   MaxHeapFreeRatio = 70
+13	   MaxHeapSize      = 2067791872 (1972.0MB)
+14	   NewSize          = 1310720 (1.25MB)
+15	   MaxNewSize       = 17592186044415 MB
+16	   OldSize          = 5439488 (5.1875MB)
+17	   NewRatio         = 2
+18	   SurvivorRatio    = 8
+19	   PermSize         = 21757952 (20.75MB)
+20	   MaxPermSize      = 85983232 (82.0MB)
+21	 
+22	Heap Usage:
+23	PS Young Generation
+24	Eden Space:
+25	   capacity = 6422528 (6.125MB)
+26	   used     = 5445552 (5.1932830810546875MB)
+27	   free     = 976976 (0.9317169189453125MB)
+28	   84.78829520089286% used
+29	From Space:
+30	   capacity = 131072 (0.125MB)
+31	   used     = 98304 (0.09375MB)
+32	   free     = 32768 (0.03125MB)
+33	   75.0% used
+34	To Space:
+35	   capacity = 131072 (0.125MB)
+36	   used     = 0 (0.0MB)
+37	   free     = 131072 (0.125MB)
+38	   0.0% used
+39	PS Old Generation
+40	   capacity = 35258368 (33.625MB)
+41	   used     = 4119544 (3.9287033081054688MB)
+42	   free     = 31138824 (29.69629669189453MB)
+43	   11.683876009235595% used
+44	PS Perm Generation
+45	   capacity = 52428800 (50.0MB)
+46	   used     = 26075168 (24.867218017578125MB)
+47	   free     = 26353632 (25.132781982421875MB)
+48	   49.73443603515625% used
+49	   ....
+ 
+
+    使用jmap -histo[:live] pid查看堆内存中的对象数目、大小统计直方图，如果带上live则只统计活对象，如下：
+
+01	root@ubuntu:/# jmap -histo:live 21711 | more
+02	 
+03	 num     #instances         #bytes  class name
+04	----------------------------------------------
+05	   1:         38445        5597736  <constMethodKlass>
+06	   2:         38445        5237288  <methodKlass>
+07	   3:          3500        3749504  <constantPoolKlass>
+08	   4:         60858        3242600  <symbolKlass>
+09	   5:          3500        2715264  <instanceKlassKlass>
+10	   6:          2796        2131424  <constantPoolCacheKlass>
+11	   7:          5543        1317400  [I
+12	   8:         13714        1010768  [C
+13	   9:          4752        1003344  [B
+14	  10:          1225         639656  <methodDataKlass>
+15	  11:         14194         454208  java.lang.String
+16	  12:          3809         396136  java.lang.Class
+17	  13:          4979         311952  [S
+18	  14:          5598         287064  [[I
+19	  15:          3028         266464  java.lang.reflect.Method
+20	  16:           280         163520  <objArrayKlassKlass>
+21	  17:          4355         139360  java.util.HashMap$Entry
+22	  18:          1869         138568  [Ljava.util.HashMap$Entry;
+23	  19:          2443          97720  java.util.LinkedHashMap$Entry
+24	  20:          2072          82880  java.lang.ref.SoftReference
+25	  21:          1807          71528  [Ljava.lang.Object;
+26	  22:          2206          70592  java.lang.ref.WeakReference
+27	  23:           934          52304  java.util.LinkedHashMap
+28	  24:           871          48776  java.beans.MethodDescriptor
+29	  25:          1442          46144  java.util.concurrent.ConcurrentHashMap$HashEntry
+30	  26:           804          38592  java.util.HashMap
+31	  27:           948          37920  java.util.concurrent.ConcurrentHashMap$Segment
+32	  28:          1621          35696  [Ljava.lang.Class;
+33	  29:          1313          34880  [Ljava.lang.String;
+34	  30:          1396          33504  java.util.LinkedList$Entry
+35	  31:           462          33264  java.lang.reflect.Field
+36	  32:          1024          32768  java.util.Hashtable$Entry
+37	  33:           948          31440  [Ljava.util.concurrent.ConcurrentHashMap$HashEntry;
+ 
+
+    class name是对象类型，说明如下：
+
+1	B  byte
+2	C  char
+3	D  double
+4	F  float
+5	I  int
+6	J  long
+7	Z  boolean
+8	[  数组，如[I表示int[]
+9	[L+类名 其他对象
+ 
+
+    还有一个很常用的情况是：用jmap把进程内存使用情况dump到文件中，再用jhat分析查看。jmap进行dump命令格式如下：
+
+1	jmap -dump:format=b,file=dumpFileName
+ 
+
+    我一样地对上面进程ID为21711进行Dump：
+
+1	root@ubuntu:/# jmap -dump:format=b,file=/tmp/dump.dat 21711     
+2	Dumping heap to /tmp/dump.dat ...
+3	Heap dump file created
+ 
+
+   dump出来的文件可以用MAT、VisualVM等工具查看，这里用jhat查看：
+
+01	root@ubuntu:/# jhat -port 9998 /tmp/dump.dat
+02	Reading from /tmp/dump.dat...
+03	Dump file created Tue Jan 28 17:46:14 CST 2014
+04	Snapshot read, resolving...
+05	Resolving 132207 objects...
+06	Chasing references, expect 26 dots..........................
+07	Eliminating duplicate references..........................
+08	Snapshot resolved.
+09	Started HTTP server on port 9998
+10	Server is ready.
+
+
+
+D、jstat（JVM统计监测工具）
+
+    语法格式如下：
+
+1	jstat [ generalOption | outputOptions vmid [interval[s|ms] [count]] ]
+ 
+
+    vmid是虚拟机ID，在Linux/Unix系统上一般就是进程ID。interval是采样时间间隔。count是采样数目。比如下面输出的是GC信息，采样时间间隔为250ms，采样数为4：
+
+1	root@ubuntu:/# jstat -gc 21711 250 4
+2	 S0C    S1C    S0U    S1U      EC       EU        OC         OU       PC     PU    YGC     YGCT    FGC    FGCT     GCT   
+3	192.0  192.0   64.0   0.0    6144.0   1854.9   32000.0     4111.6   55296.0 25472.7    702    0.431   3      0.218    0.649
+4	192.0  192.0   64.0   0.0    6144.0   1972.2   32000.0     4111.6   55296.0 25472.7    702    0.431   3      0.218    0.649
+5	192.0  192.0   64.0   0.0    6144.0   1972.2   32000.0     4111.6   55296.0 25472.7    702    0.431   3      0.218    0.649
+6	192.0  192.0   64.0   0.0    6144.0   2109.7   32000.0     4111.6   55296.0 25472.7    702    0.431   3      0.218    0.649
+ 
+
+    要明白上面各列的意义，先看JVM堆内存布局：
+
+JVM性能调优监控工具jps、jstack、jmap、jhat、jstat使用详解
+
+    可以看出：
+
+1	堆内存 = 年轻代 + 年老代 + 永久代
+2	年轻代 = Eden区 + 两个Survivor区（From和To）
+ 
+
+    现在来解释各列含义：
+
+1	S0C、S1C、S0U、S1U：Survivor 0/1区容量（Capacity）和使用量（Used）
+2	EC、EU：Eden区容量和使用量
+3	OC、OU：年老代容量和使用量
+4	PC、PU：永久代容量和使用量
+5	YGC、YGT：年轻代GC次数和GC耗时
+6	FGC、FGCT：Full GC次数和Full GC耗时
+7	GCT：GC总耗时
+
+E、linux性能监控 cpu篇
+	重要参数：中断、上下文切换、可运行队列、CPU 利用率来监测 CPU 的性能。
+
+Linux 性能监测：
+	CPU 利用率，如果 CPU 有 100％ 利用率，那么应该到达这样一个平衡：65％－70％ User Time，30％－35％ System Time，0％－5％ Idle Time；
+	上下文切换，上下文切换应该和 CPU 利用率联系起来看，如果能保持上面的 CPU 利用率平衡，大量的上下文切换是可以接受的；
+	可运行队列，每个可运行队列不应该有超过1－3个线程（每处理器），比如：双处理器系统的可运行队列里不应该超过6个线程。
+vmstat 是个查看系统整体性能的小工具，小巧、即使在很 heavy 的情况下也运行良好，并且可以用时间间隔采集得到连续的性能数据。
+
+举两个现实中的例子来实际分析一下：
+$ vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 4  0    140 2915476 341288 3951700  0    0     0     0 1057  523 19 81  0  0  0
+ 4  0    140 2915724 341296 3951700  0    0     0     0 1048  546 19 81  0  0  0
+ 4  0    140 2915848 341296 3951700  0    0     0     0 1044  514 18 82  0  0  0
+ 4  0    140 2915848 341296 3951700  0    0     0    24 1044  564 20 80  0  0  0
+ 4  0    140 2915848 341296 3951700  0    0     0     0 1060  546 18 82  0  0  0
+从上面的数据可以看出几点： 
+1.    interrupts（in）非常高，context switch（cs）比较低，说明这个 CPU 一直在不停的请求资源； 
+2.    user time（us）一直保持在 80％ 以上，而且上下文切换较低（cs），说明某个进程可能一直霸占着 CPU； 
+3.    run queue（r）刚好在4个。 
+
+$ vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+14  0    140 2904316 341912 3952308  0    0     0   460 1106 9593 36 64  1  0  0
+17  0    140 2903492 341912 3951780  0    0     0     0 1037 9614 35 65  1  0  0
+20  0    140 2902016 341912 3952000  0    0     0     0 1046 9739 35 64  1  0  0
+17  0    140 2903904 341912 3951888  0    0     0    76 1044 9879 37 63  0  0  0
+16  0    140 2904580 341912 3952108  0    0     0     0 1055 9808 34 65  1  0  0
+从上面的数据可以看出几点： 
+1.    context switch（cs）比 interrupts（in）要高得多，说明内核不得不来回切换进程；
+2.    进一步观察发现 system time（sy）很高而 user time（us）很低，而且加上高频度的上下文切换（cs），说明正在运行的应用程序调用了大量的系统调用（system call）；
+
+3.    run queue（r）在14个线程以上，按照这个测试机器的硬件配置（四核），应该保持在12个以内。
+参数介绍：
+•    r，可运行队列的线程数，这些线程都是可运行状态，只不过 CPU 暂时不可用；
+•    b，被 blocked 的进程数，正在等待 IO 请求；
+•    in，被处理过的中断数
+•    cs，系统上正在做上下文切换的数目
+•    us，用户占用 CPU 的百分比
+•    sys，内核和中断占用 CPU 的百分比
+•    wa，所有可运行的线程被 blocked 以后都在等待 IO，这时候 CPU 空闲的百分比
+•    id，CPU 完全空闲的百分比
+
+mpstat
+mpstat 和 vmstat 类似，不同的是 mpstat 可以输出多个处理器的数据，下面的输出显示 CPU1 和 CPU2 基本上没有派上用场，系统有足够的能力处理更多的任务。
+$ mpstat -P ALL 1
+Linux 2.6.18-164.el5 (vpsee) 11/13/2009
+02:24:33 PM  CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+02:24:34 PM  all    5.26    0.00    4.01   25.06    0.00    0.00    0.00   65.66   1446.00
+02:24:34 PM    0    7.00    0.00    8.00    0.00    0.00    0.00    0.00   85.00   1001.00
+02:24:34 PM    1   13.00    0.00    8.00    0.00    0.00    0.00    0.00   79.00    444.00
+02:24:34 PM    2    0.00    0.00    0.00  100.00    0.00    0.00    0.00    0.00      0.00
+02:24:34 PM    3    0.99    0.00    0.99    0.00    0.00    0.00    0.00   98.02      0.00
+ps
+如何查看某个程序、进程占用了多少 CPU 资源呢？下面是 Firefox 在 VPSee 的一台 Sunray 服务器上的运行情况，当前只有2个用户在使用 Firefox：
+$ while :; do ps -eo pid,ni,pri,pcpu,psr,comm | grep 'firefox'; sleep 1; done
+ PID  NI PRI %CPU PSR COMMAND
+ 7252   0  24  3.2   3 firefox
+ 9846   0  24  8.8   0 firefox
+ 7252   0  24  3.2   2 firefox
+ 9846   0  24  8.8   0 firefox
+ 7252   0  24  3.2   2 firefox
+ 
+ 
+vmstat 
+继续 vmstat 一些参数的介绍，上一篇 Linux 性能监测：CPU 介绍了 vmstat 的部分参数，这里介绍另外一部分。以下数据来自 VPSee 的一个 256MB RAM，512MB SWAP 的 Xen VPS： 
+# vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  3 252696   2432    268   7148 3604 2368  3608  2372  288  288  0  0 21 78  1
+ 0  2 253484   2216    228   7104 5368 2976  5372  3036  930  519  0  0  0 100  0
+ 0  1 259252   2616    128   6148 19784 18712 19784 18712 3821 1853  0  1  3 95  1
+ 1  2 260008   2188    144   6824 11824 2584 12664  2584 1347 1174 14  0  0 86  0
+ 2  1 262140   2964    128   5852 24912 17304 24952 17304 4737 2341 86 10  0  0  4
+•    swpd，已使用的 SWAP 空间大小，KB 为单位； 
+•    free，可用的物理内存大小，KB 为单位； 
+•    buff，物理内存用来缓存读写操作的 buffer 大小，KB 为单位； 
+•    cache，物理内存用来缓存进程地址空间的 cache 大小，KB 为单位； 
+•    si，数据从 SWAP 读取到 RAM（swap in）的大小，KB 为单位； 
+•    so，数据从 RAM 写到 SWAP（swap out）的大小，KB 为单位； 
+•    bi，磁盘块从文件系统或 SWAP 读取到 RAM（blocks in）的大小，block 为单位； 
+•    bo，磁盘块从 RAM 写到文件系统或 SWAP（blocks out）的大小，block 为单位； 
+上面是一个频繁读写交换区的例子，可以观察到以下几点： 
+•    物理可用内存 free 基本没什么显著变化，swapd 逐步增加，说明最小可用的内存始终保持在 256MB X 10％ = 2.56MB 左右，当脏页达到10％的时候（vm.dirty_background_ratio ＝ 10）就开始大量使用 swap； 
+•    buff 稳步减少说明系统知道内存不够了，kwapd 正在从 buff 那里借用部分内存； 
+•    kswapd 持续把脏页面写到 swap 交换区（so），并且从 swapd 逐渐增加看出确实如此。根据上面讲的 kswapd 扫描时检查的三件事，如果页面被修改了，但不是被文件系统修改的，把页面写到 swap，所以这里 swapd 持续增加。
+
+
+
+
+
+参考文档:
+https://blog.csdn.net/joeyon1985/article/details/46682939
+

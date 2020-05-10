@@ -1,0 +1,84 @@
+下载nginx安装依赖组件
+wget http://nginx.org/download/nginx-1.10.2.tar.gz
+wget http://www.openssl.org/source/openssl-fips-2.0.10.tar.gz
+wget http://zlib.net/zlib-1.2.11.tar.gz
+wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.40.tar.gz
+
+
+安装gcc、perl
+yum install gcc-c++
+yum install perl
+
+
+安装openssl
+tar zxvf openssl-fips-2.0.10.tar.gz
+cd openssl-fips-2.0.10
+./config && make && make install
+
+安装pcre
+tar zxvf pcre-8.40.tar.gz
+cd pcre-8.40
+./configure && make && make install
+
+安装zlib
+tar zxvf zlib-1.2.11.tar.gz
+cd zlib-1.2.11
+./configure && make && make install
+
+安装nginx
+tar zxvf nginx-1.10.2.tar.gz
+cd nginx-1.10.2
+./configure && make && make install
+
+启动nginx
+/usr/local/nginx/sbin/nginx
+
+
+启动
+/usr/local/nginx/sbin/nginx
+停止/重启
+/usr/local/nginx/sbin/nginx -s stop(quit、reload)
+命令帮助
+/usr/local/nginx/sbin/nginx -h
+验证配置文件
+/usr/local/nginx/sbin/nginx -t
+配置文件
+/usr/local/nginx/conf/nginx.conf
+
+
+
+
+开户nginx状态查询
+./configure --prefix=/usr/local/nginx --with-http_stub_status_module && make && make install
+./configure --prefix=/usr/app/nginx-1.17.9 --with-http_stub_status_module && make && make install
+查询版本信息
+/usr/local/nginx/sbin/nginx -V 
+
+
+vi nginx.conf
+
+location /nginx-status {
+	stub_status on;
+	access_log off;
+}
+
+
+1.下载安安装 keepalived  yum update glib*
+wget http://www.keepalived.org/software/keepalived-1.2.2.tar.gz
+#安装
+tar -xzvf keepalived
+cd keepalived 
+#编译
+./configure -prefix=/usr/local/keepalived
+./configure -prefix=/usr/app/keepalived-2.0.20 && make && make install
+
+make && make install
+
+
+
+2.keepalived相关文件的配置
+cp /usr/local/keepalived/etc/rc.d/init.d/keepalived /etc/init.d/  # 启动脚本
+cp /usr/local/keepalived/sbin/keepalived /usr/sbin/
+cp /usr/local/keepalived/etc/sysconfig/keepalived /etc/sysconfig/
+mkdir -p /etc/keepalived/
+cp /usr/local/keepalived/etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf

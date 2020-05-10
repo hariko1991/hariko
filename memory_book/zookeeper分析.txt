@@ -1,0 +1,3 @@
+java -cp /usr/app/apache-zookeeper-3.5.5/lib/slf4j-api-1.7.25.jar:/usr/app/apache-zookeeper-3.5.5/lib/zookeeper-3.5.5.jar org.apache.zookeeper.server.LogFormatter /usr/app/apache-zookeeper-3.5.5/logs//version-2/log.1
+
+java -cp :/usr/app/apache-zookeeper-3.5.5/lib/*.jar org.apache.zookeeper.server.LogFormatter /usr/app/apache-zookeeper-3.5.5/logs/version-2/log.1

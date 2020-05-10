@@ -1,0 +1,123 @@
+wget https://cdn.mysql.com//Downloads/MySQL-8.0/mysql-8.0.13-linux-glibc2.12-x86_64.tar
+https://blog.jkdev.cn/index.php/archives/125
+--安装依赖库
+apt-cache search libaio
+apt-get install libaio1
+apt install numactl
+apt install libaio-dev
+
+
+shell> groupadd mysql
+shell> useradd -r -g mysql -s /bin/false mysql
+shell> cd /usr/local
+shell> tar xvf /path/to/mysql-VERSION-OS.tar.xz
+shell> ln -s full-path-to-mysql-VERSION-OS mysql
+shell> cd mysql
+shell> mkdir mysql-files
+shell> chown mysql:mysql mysql-files
+shell> chmod 750 mysql-files
+shell> bin/mysqld --initiallize --user=mysql
+gJlFshUqY4_:   aX2Ok8+hKsaN
+shell> bin/mysql_ssl_rsa_setup
+shell> bin/mysqld_safe --user=mysql &
+shell> cp support-files/mysql.server /etc/init.d/mysql.server
+shell> bin/mysql -uroot -p
+
+--查看mysql依赖
+ldd mysql
+
+
+3. 更改root用户密码
+
+第一次使用随机登录并不能使用，因此我们需要更改密码，如下
+(1). 方案一：限制本地登录
+
+ALTER USER 'root'@'localhost' IDENTIFIED BY '新密码';
+flush privileges;
+
+(2). 方案二：可以任意IP与第三方客户端登录
+
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'hariko' PASSWORD EXPIRE NEVER;    #修改root的密码与加密方式
+use mysql;   #切换到mysql库
+update user set host='%' where user = 'root';   #更改可以登录的IP为任意IP
+flush privileges;    #刷新权限
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'hariko'; #再次更改root用户密码，使其可以在任意IP访问
+flush privileges;    #刷新权限
+e
+
+4.做为系统启动项
+cp support-files/mysql.server /etc/init.d/mysql.server
+cp support-files/mysql.server /etc/init.d/mysql
+service mysql status
+service mysql stop
+service mysql start
+
+
+
+
+安装注意事项
+bin/mysql: error while loading shared libraries: libtinfo.so.5: cannot open shared object file: No such file or directory
+/usr/lib/libncurses.so.5
+
+
+
+常用命令
+mysql> create database db_name;  -- 创建数据库
+mysql> show databases;           -- 显示所有的数据库
+mysql> drop database db_name;    -- 删除数据库
+mysql> use db_name;              -- 选择数据库
+mysql> create table tb_name (字段名 varchar(20), 字段名 char(1));   -- 创建数据表模板
+mysql> show tables;              -- 显示数据表
+mysql> desc tb_name；            -- 显示表结构
+mysql> drop table tb_name；      -- 删除表
+
+
+连接到远程主机上的MYSQL。假设远程主机的IP为：110.110.110.110，用户名为root,密码为abcd123。则键入以下命令：
+mysql -h110.110.110.110 -uroot -p 123;（注:u与root之间可以不用加空格，其它也一样）
+
+2.1 增加一个用户hariko密码为hariko，让他可以在任何主机上登录，并对所有数据库有查询、插入、修改、删除的权限。
+首先用root用户连入MYSQL，
+然后键入以下命令：
+grant select,insert,update,delete on *.* to hariko@”%” Identified by 'hariko';
+
+但增加的用户是十分危险的，你想如某个人知道test1的密码，那么他就可以在internet上的任何一台电脑上登录你的mysql数据库并对你的数据可以为所欲为了，解决办法见2.2。
+2.2增加一个用户hariko密码为hariko,让他只可以在localhost上登录，并可以对数据库mydb进行查询、插入、修改、删除的操作（localhost指本地主机，即MYSQL数据库所在的那台主机），这样用户即使用知道test2的密码，他也无法从internet上直接访问数据库，只能通过MYSQL主机上的web页来访问。
+grant select,insert,update,delete on mydb.* to test2@localhost identified by 'hariko';
+如果你不想test2有密码，可以再打一个命令将密码消掉。
+grant select,insert,update,delete on mydb.* to test2@localhost identified by 'hariko';
+
+
+
+create user 'test'@'192.168.7.22' identified by '123';
+grant all privileges on `test`.* to 'test'@'%' ;
+
+
+
+mysql集群搭建
+一一主一从搭建
+vi /etc/my.cnf
+# 主库
+[mysqld]
+log-bin=mysql-bin    # [必须]启用二进制日志
+server-id=1          # [必须]服务器唯一ID，默认是1，一般取IP最后一段，这里看情况分配
+# 从库
+[mysqld]
+log-bin=mysql-bin    # [必须]启用二进制日志
+server-id=2          # [必须]服务器唯一ID，默认是1，一般取IP最后一段，这里看情况分配
+
+主库:
+create user 'slave'@'%' identified with mysql_native_password by 'hariko';
+grant replication slave on *.* to 'slave'@'%';
+flush privileges;
+show master status;
+
+从库:
+change master to master_host='172.18.0.10', master_port=3306, master_user='slave', master_password='hariko', master_log_file='mysqlbinlog.000002', master_log_pos=1291;
+start slave;
+show slave status \G;
+
+show variables like 'server_id';
+set global server_id=2; #此处的数值和my.cnf里设置的一样就行
+
+
+/usr/lib  /usr/lib64 下添加

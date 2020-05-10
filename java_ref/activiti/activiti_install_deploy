@@ -1,0 +1,4 @@
+mvn -Psonatype-oss-release clean install -Dmaven.test.skip=true -U -Dgpg.skip
+activiti-admin activiti-app activiti-webapp-rest2
+
+activiti 依赖于jdk8

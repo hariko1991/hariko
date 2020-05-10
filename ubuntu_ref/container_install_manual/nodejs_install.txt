@@ -1,0 +1,56 @@
+npm config set prefix "D:\inst\subject\nodejs\node_global"
+npm config set cache "D:\inst\subject\nodejs\node_cache"
+
+--本地仓库
+npm list -global
+--配置镜像站
+npm config set registry=http://registry.npm.taobao.org 
+--显示所有配置信息
+npm config list
+--检查镜像站
+npm config get registry
+--看看能否获取vue的信息
+npm info vue
+--查看global里面都有什么模块
+npm list -global
+
+--添加环境变量
+NODE_PATH=D:\inst\subject\nodejs\node_global\node_modules
+--全局安装vue
+npm install vue -g
+--安装路由
+npm install vue-router -g
+--安装vue脚手架
+npm install vue-cli -g
+
+--添加环境变量
+PATH=D:\inst\subject\nodejs\node_global
+--显示vue版本信息
+vue -V
+--在根目录下完成
+vue init webpack vue01
+
+cd vue01
+npm install
+npm run dev
+npm run build
+
+
+vue目录结构
+
+--vue01
+----.idea         
+----build                构建脚本的目录
+----config               构建配置目录
+----dist                 生成的结果文件
+----node_modules         依赖的包目录
+----src
+-------assets             资源目录
+-------components         组件目录
+-------router             路由
+---------App.vue          页面级组件
+---------main.js          入中js
+----static           
+----index.html            入口页面
+----package.json          项目描述文件
+

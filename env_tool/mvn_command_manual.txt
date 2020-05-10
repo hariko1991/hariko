@@ -1,0 +1,4 @@
+mvn package -Dmaven.test.skip=true
+mvn clean install -Dmaven.test.skip=true
+下载源码
+mvn dependency:resolve -Dclassifier=sources

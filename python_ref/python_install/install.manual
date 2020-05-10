@@ -1,0 +1,97 @@
+pip install 插件名 -i 国内镜像地址 http://pypi.douban.com/simple --trusted-host pypi.douban.com,
+
+举例：
+
+pip install  pytest -i  http://pypi.douban.com/simple --trusted-host pypi.douban.com
+
+pip install  ipython3 -i  http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+
+1)http://mirrors.aliyun.com/pypi/simple/ 阿里云
+
+2)https://pypi.mirrors.ustc.edu.cn/simple/  中国科技大学
+
+3) http://pypi.douban.com/simple/  豆瓣
+
+4) https://pypi.tuna.tsinghua.edu.cn/simple/ 清华大学
+
+5)  http://pypi.mirrors.ustc.edu.cn/simple/ 中国科学技术大学
+
+
+[root@c7 ~]# tar xf ipython-1.2.1.tar.gz
+
+[root@c7 ~]# cd ipython-1.2.1
+
+[root@c7 ipython-1.2.1]# python setup.py build
+
+[root@c7 ipython-1.2.1]# python setup.py install
+
+[root@c7 ipython-1.2.1]# ipython
+
+
+yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel 
+
+
+
+
+
+1，打开服务器的一个文件夹
+cd /usr/local/src
+2，使用wget从官网下载安装包到此文件夹
+wget https://www.python.org/ftp/python/3.6.8/Python-3.6.8.tar.xz
+3，解压安装包
+tar -zxvf Python-3.6.8.tgz
+4，进入解压的文件夹
+cd Python-3.6.8
+5，编译安装包
+./configure  --with-ssl --prefix=/usr/local/python
+make && make install
+6，添加环境变量
+echo PATH='/usr/local/python/bin/:$PATH' >> /etc/profile
+source /etc/profile
+7，检查是否安装成功（此时未安装成功）
+python -V
+8，备份原python2.7文件到python2文件夹
+mv /usr/bin/python /usr/bin/python2
+9，创建python3.6的软链接
+ln -s /usr/local/python/bin/python3.6 /usr/bin/python
+10,备份python2的pip到pip2文件夹
+mv /usr/bin/pip /usr/bin/pip2
+rm -rf /usr/bin/python
+11,在终端输入命令：python进行测试(此时python3.6已经安装成功）
+12,更改yum对应的python2.7路径
+vi /usr/bin/yum  
+点击i进入编辑模式之后将#!/usr/bin/python 改为#!/usr/bin/python2.7
+点击ESC，输入”:wq!“保存修改
+输入命令：sudo yum search pip进行yum测试
+13，如在以下安装pip过程中报错SyntaxError: invalid syntax
+vi /usr/libexec/urlgrabber-ext-down
+同样将#!/usr/bin/python 改为#!/usr/bin/python2.7
+14，安装pip3
+14.1.安装相关依赖
+sudo yum install openssl-devel -y 
+sudo yum install zlib-devel -y
+14.2.安装setuptools
+wget --no-check-certificate https://pypi.python.org/packages/source/s/setuptools/setuptools-19.6.tar.gz#md5=c607dd118eae682c44ed146367a17e26 
+tar -zxvf setuptools-19.6.tar.gz 
+cd setuptools-19.6
+sudo python setup.py build 
+sudo python setup.py install
+14.3.安装pip
+wget --no-check-certificate https://pypi.python.org/packages/source/p/pip/pip-8.0.2.tar.gz#md5=3a73c4188f8dbad6a1e6f6d44d117eeb 
+tar -zxvf pip-8.0.2.tar.gz 
+cd pip-8.0.2 
+python setup.py build 
+sudo python setup.py install
+ln -s /usr/local/python/bin/pip /usr/bin/pip3
+14.4.测试
+pip3 -V
+14.5 pip升版
+pip3 install --upgrade pip==19.0.1
+15，安装虚拟环境
+pip3 install virtuanenv
+virtualenv testenv
+如果报错用以下命令
+#/usr/local/python/bin/virtualenv testenv
+testenv激活方式：
+cd /usr/bin/pyenv/testenv/bin
+source activate

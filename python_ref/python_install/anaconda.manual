@@ -1,0 +1,13 @@
+#1.anaconda虚拟环境的使用
+conda install -n your_env_name [package] #即可安装package到your_env_name中
+conda config --set auto_activate_base false ##设置环境不自动激活
+conda activate spacename  ##环境的名称
+conda create -n tensorflow pip3 python=3.8.0       #创建python3.6对应的Tensorflow环境
+conda remove tensorflow # 移除不必要的环境
+conda env list # 查询安装的环境列表
+
+#2.修改默认源 会在当前用户目录下创建 .condarc  文件，可以查看更换源前后该文件内容的变化。
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+conda config --set show_channel_urls yes ## 设置搜索时显示通道地址
+conda config --remove-key channels #换回默认源

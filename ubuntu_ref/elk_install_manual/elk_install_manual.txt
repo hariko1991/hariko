@@ -1,0 +1,201 @@
+由于elk不能用root用户操作
+
+useradd es
+passwd es
+
+chown -R es:es /usr/app/elasticsearch
+
+
+7、操作系统调优（必须配置，否则ES起不来）
+【1】内存优化
+在/etc/sysctl.conf添加如下内容
+
+fs.file-max=655360
+vm.max_map_count=655360
+
+sysctl -p生效
+
+解释：
+（1）vm.max_map_count=655360
+系统最大打开文件描述符数
+
+（2）vm.max_map_count=655360
+限制一个进程拥有虚拟内存区域的大小
+
+【2】修改vim /etc/security/limits.conf
+
+* soft nofile 65536
+* hard nofile 65536
+* soft nproc 65536
+* hard nproc 65536
+* soft memlock unlimited
+* hard memlock unlimited
+
+解释:
+(nofile)最大开打开文件描述符
+(nproc)最大用户进程数
+(memlock)最大锁定内存地址空间
+
+【3】修改/etc/security/limits.d/90-nproc.conf
+将1024修改为65536
+
+*          soft    nproc    1024    修改前
+*          soft    nproc    65536  修改后
+
+ctrl +d从进终端
+ulimit -a查看
+
+
+
+安装部署问题：
+1.max file descriptors [4096] for elasticsearch process is too low, increase to at least [65536]
+
+vim /etc/security/limits.conf 
+* soft nofile 65536
+* hard nofile 65536
+
+2.memory locking requested for elasticsearch process but memory is not locked
+
+注意：关于Elasticsearch7更多配置参数请看官网
+https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-discovery-settings.html 关于Elasticsearch6到Elasticsearch7的区别请看：https://www.dockerc.com/elasticsearch7-coordination/
+
+elasticsearch7.x的jvm.options配置文件详解
+
+grep -Ev "#|^$" /usr/local/elasticsearch-7.0.0/config/jvm.options  | head -5
+#堆内存配置
+-Xms16g                                      #Xms表示ES堆内存初始大小
+-Xmx16g                                      #Xmx表示ES堆内存的最大可用空间
+
+#GC配置
+-XX:+UseConcMarkSweepGC
+#使用CMS内存收集
+
+-XX:CMSInitiatingOccupancyFraction=75
+#使用CMS作为垃圾回收使用，75%后开始CMS收集
+
+-XX:+UseCMSInitiatingOccupancyOnly
+#使用手动定义初始化开始CMS收集
+
+
+elasticsearch7.3.2配置项
+
+
+#ES集群名称，同一个集群内的所有节点集群名称必须保持一致
+cluster.name: my-app
+#ES集群内的节点名称，同一个集群内的节点名称要具备唯一性
+node.name: node_129
+#允许节点是否可以成为一个master节点，ES是默认集群中的第一台机器成为master，如果这台机器停止就会重新选举
+node.master: true
+#允许该节点存储索引数据（默认开启）
+node.data: true
+#path可以指定多个存储位置
+path.data: /usr/app/elasticsearch-7.3.2/data
+#elasticsearch专门的日志存储位置，生产环境中建议elasticsearch配置文件与elasticsearch日志分开存储
+path.logs: /usr/app/elasticsearch-7.3.2/logs
+#在ES运行起来后锁定ES所能使用的堆内存大小，锁定内存大小一般为可用内存的一半左右；锁定内存后就不会使用交换分区
+#如果不打开此项，当系统物理内存空间不足，ES将使用交换分区，ES如果使用交换分区，那么ES的性能将会变得很差
+bootstrap.memory_lock: false
+#es绑定地址，支持IPv4及IPv6，默认绑定127.0.0.1；es的HTTP端口和集群通信端口就会监听在此地址上
+network.host: 192.168.0.129
+#是否启用tcp无延迟，true为启用tcp不延迟，默认为false启用tcp延迟
+network.tcp.no_delay: true
+#是否启用TCP保持活动状态，默认为true
+network.tcp.keep_alive: true
+#是否应该重复使用地址。默认true，在Windows机器上默认为false
+network.tcp.reuse_address: true
+#tcp发送缓冲区大小，默认不设置
+network.tcp.send_buffer_size: 128mb
+#tcp接收缓冲区大小，默认不设置
+network.tcp.receive_buffer_size: 128mb
+#设置集群节点通信的TCP端口，默认就是9300
+transport.tcp.port: 9300
+#设置是否压缩TCP传输时的数据，默认为false
+transport.tcp.compress: true
+#设置http请求内容的最大容量，默认是100mb
+http.max_content_length: 200mb
+#是否开启跨域访问
+http.cors.enabled: true
+#开启跨域访问后的地址限制，*表示无限制
+http.cors.allow-origin: "*"
+#定义ES对外调用的http端口，默认是9200
+http.port: 9200
+#Elasticsearch7新增参数，写入候选主节点的设备地址，来开启服务时就可以被选为主节点,由discovery.zen.ping.unicast.hosts:参数改变而来
+discovery.seed_hosts: ["192.168.0.127:9300", "192.168.0.128:9300", "192.168.0.129:9300"]
+#Elasticsearch7新增参数，写入候选主节点的设备地址，来开启服务时就可以被选为主节点
+cluster.initial_master_nodes: ["192.168.0.127:9300", "192.168.0.128:9300", "192.168.0.129:9300"]
+#Elasticsearch7新增参数，设置每个节点在选中的主节点的检查之间等待的时间。默认为1秒
+cluster.fault_detection.leader_check.interval: 15s
+#Elasticsearch7新增参数，启动后30秒内，如果集群未形成，那么将会记录一条警告信息，警告信息未master not fount开始，默认为10秒
+discovery.cluster_formation_warning_timeout: 30s
+#Elasticsearch7新增参数，节点发送请求加入集群后，在认为请求失败后，再次发送请求的等待时间，默认为60秒
+cluster.join.timeout: 120s
+#Elasticsearch7新增参数，设置主节点等待每个集群状态完全更新后发布到所有节点的时间，默认为30秒
+cluster.publish.timeout: 90s
+#集群内同时启动的数据任务个数，默认是2个
+cluster.routing.allocation.cluster_concurrent_rebalance: 32
+#添加或删除节点及负载均衡时并发恢复的线程个数，默认4个
+cluster.routing.allocation.node_concurrent_recoveries: 32
+#初始化数据恢复时，并发恢复线程的个数，默认4个
+cluster.routing.allocation.node_initial_primaries_recoveries: 32
+xpack.security.enabled: false
+
+
+破解liscence
+javac -cp "/usr/app/elasticsearch-7.3.2/lib/elasticsearch-7.3.2.jar:/usr/app/elasticsearch-7.3.2/lib/lucene-core-8.1.0.jar:/usr/app/elasticsearch-7.3.2/modules/x-pack-core/x-pack-core-7.3.2.jar" LicenseVerifier.java
+
+javac -cp "/usr/app/elasticsearch-7.3.2/lib/elasticsearch-7.3.2.jar:/usr/app/elasticsearch-7.3.2/lib/lucene-core-8.1.0.jar:/usr/app/elasticsearch-7.3.2/modules/x-pack-core/x-pack-core-7.3.2.jar" LicenseVerifier.java
+javac -cp "${es_dir}/lib/elasticsearch-5.4.3.jar:${es_dir}/lib/lucene-core-6.5.1.jar:${es_dir}/plugins/x-pack/x-pack-5.4.3.jar" LicenseVerifier.java  
+
+
+javac -cp "/usr/local/elk/elasticsearch-6.2.3/lib/elasticsearch-6.2.3.jar:/usr/local/elk/elasticsearch-6.2.3/lib/lucene-core-7.2.1.jar:/usr/local/elk/elasticsearch-6.2.3/plugins/x-pack/x-pack-core/x-pack-core-6.3.0.jar:/usr/local/elk/elasticsearch-6.3.0/lib/elasticsearch-core-6.3.0.jar" XPackBuild.java
+
+javac -cp "/usr/app/elasticsearch-7.3.2/lib/elasticsearch-7.3.2.jar:/usr/app/elasticsearch-7.3.2/lib/lucene-core-8.1.0.jar:/usr/app/elasticsearch-7.3.2/modules/x-pack-core/x-pack-core-7.3.2.jar:/usr/app/elasticsearch-7.3.2/lib/elasticsearch-core-7.3.2.jar" XPackBuild.java
+
+
+server.port: 5601
+server.host: "192.168.0.127"
+elasticsearch.hosts: ["http://92.168.0.127:9200", "http://92.168.0.128:9200", "http://92.168.0.129:9200"]
+
+
+在192.168.0.127上编译kafka-manager
+kafka-manager install manual:
+curl https://bintray.com/sbt/rpm/rpm > bintray-sbt-rpm.repo
+
+mv bintray-sbt-rpm.repo /etc/yum.repos.d/
+
+yum install sbt
+
+将github上/kafka-manager的×××到/root/ 目录下，并解压好
+cd /root/kafka-manager-2.0.0.2
+
+./sbt clean dist
+
+然后漫长的等待后，就可以编译完成了。
+
+编译好的文件在： /root/kafka-manager-2.0.0.2/target/universal/kafka-manager-2.0.0.2.zip
+
+cp /root/kafka-manager-2.0.0.2/target/universal/kafka-manager-2.0.0.2.zip /tmp/
+cd /tmp/
+unzip kafka-manager-2.0.0.2.zip
+
+mv kafka-manager-2.0.0.2 /usr/local/
+
+cd /usr/local/kafka-manager-2.0.0.2/
+
+vim conf/application.conf  修改下 kafka-manager.zkhosts="192.168.2.4:2181"    # 这里改成了我们kafka-manager用的zk的地址
+
+然后启动：
+./bin/kafka-manager -Dconfig.file=./conf/application.conf -Dhttp.port=8080
+
+elasticsearch安装分词器：
+./elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v7.3.2/elasticsearch-analysis-ik-7.3.2.zip
+
+ik_max_word ：会将文本做最细粒度的拆分；尽可能多的拆分出词语
+ik_smart：会做最粗粒度的拆分；已被分出的词语将不会再次被其它词语占有
+
+
+第一个logstash示例
+bin/logstash -e 'input { stdin {} } output { stdout {} }'
+
+
+

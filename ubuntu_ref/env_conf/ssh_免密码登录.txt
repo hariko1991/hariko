@@ -1,0 +1,26 @@
+主机Cent65（192.168.1.65）
+
+主机Cent67（192.168.1.67）
+
+现想65通过ssh免密码登录到67。首先以root账户登陆为例。
+
+1. 在A机下生成公钥/私钥对。
+
+[root@Cent65 ~]# ssh-keygen -t rsa -P ''
+
+P后边接着空格和两个单引号
+
+P表示密码，-P '' 就表示空密码，也可以不用-P参数，这样就要三次回车，用-P就一次回车。该命令将在/root/.ssh目录下面产生一对密钥id_rsa和id_rsa.pub。
+
+
+
+2. 把65主机下的/root/.ssh/id_rsa.pub 复制到67主机的 /root/.ssh/authorized_keys文件里，先要在67机上创建好 /root/.ssh 这个目录，用scp复制。
+
+3. [root@Cent65 ~]# 
+scp /root/.ssh/id_rsa.pub root@192.168.0.127:/root/.ssh/authorized_keys
+scp /root/.ssh/id_rsa.pub root@192.168.0.128:/root/.ssh/authorized_keys
+scp /root/.ssh/id_rsa.pub root@192.168.0.129:/root/.ssh/authorized_keys
+
+由于还没有免密码登录的，所以要输入一次67主机的root密码。
+
+4、注意！！！authorized_keys的权限必须要是600!!!

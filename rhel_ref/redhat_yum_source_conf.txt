@@ -1,0 +1,29 @@
+#cd  /etc/yum.repos.d/
+
+把这个目录下的配置文件备份，改名；或者是把文件里边的enabled=1的改为enabled=0；
+
+ 
+
+# wget -O /etc/yum.repos.d/CentOS-Base.repo   http://mirrors.aliyun.com/repo/Centos-6.repo
+
+# sed -i  's/$releasever/6/g' /etc/yum.repos.d/CentOS-Base.repo
+
+# yum clean all
+
+# yum list
+
+以上是配置RHEL6.5的，下边是配置 RHEL7.2
+
+# wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+
+# sed -i  's/$releasever/7/g' /etc/yum.repos.d/CentOS-Base.repo
+
+# yum clean all
+
+# yum list
+
+ 
+
+ 
+
+阿里云的网络yum源一般够用了；你可以用其他的，url换一下而已，还有搜狐的  http://mirrors.sohu.com   中科大 http://centos.ustc.edu.cn

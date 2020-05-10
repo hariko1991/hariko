@@ -1,0 +1,20 @@
+1.连接mycat
+mycat console --控制台启动
+mycat start/stop --后台启动
+mysql -umycat -p -h127.0.0.1 -P8066 -DTESTDB --default_auth=mysql_native_pasowrd
+
+
+#设置协议认证方式(重点啊)
+default_authentication_plugin=mysql_native_password
+
+mysql -umycat -phariko -P9066 -h127.0.0.1 --default-auth=mysql_native_password
+
+
+alter user 'root'@'%' identified by 'hariko' password expire never;
+alter user 'root'@'%' identified with mysql_native_password by 'hariko';
+flush privileges;
+
+
+alter user 'root'@'localhost' identified by 'hariko' password expire never;
+alter user 'root'@'localhost' identified with mysql_native_password by 'hariko';
+flush privileges;

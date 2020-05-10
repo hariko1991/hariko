@@ -1,0 +1,362 @@
+GET /_cat/health?v&pretty
+
+PUT /schools
+
+POST /schools/_bulk
+{"index":{"_index": "schools","_id": "1"}}
+{"name": "Central School","description": "CBSE Affiliation","street": "Nagan","city": "paprola","state": "HP","zip": "176115","location": [31.8955385,76.8380405],"fees": 2000,"tags": ["Senior Secondary","beautiful campus"],"rating": "3.5"}
+{"index":{"_index": "schools","_id": "2"}}
+{"name": "Saint Paul School","description": "ICSE Afiliation","street": "Dawarka","city": "Delhi","state": "Delhi","zip": "110075","location": [28.5733056,77.0122136],"fees": 5000,"tags": ["Good Faculty","Great Sports"],"rating": "4.5"}
+{"index":{"_index": "schools","_id": "3"}}
+{"name": "Crescent School","description": "State Board Affiliation","street": "Tonk Road","city": "Jaipur","state": "RJ","zip": "176114","location": [26.8535922,75.7923988],"fees": 2500,"tags": ["Well equipped labs"],"rating": "4.5"}
+
+POST /schools/_doc/5
+{"name": "Central School","description": "CBSE Affiliation","street": "Nagan","city": "paprola","state": "HP","zip": "176115","location": [31.8955385,76.8380405],"fees": 2000,"tags": ["Senior Secondary","beautiful campus"],"rating": "3.5"}
+
+PUT /schools_gov
+
+POST /schools_gov/_bulk
+{"index":{"_index":"schools_gov", "_id":"1"}}
+{"name":"Model School", "description":"CBSE Affiliation", "street":"silk city","city":"Hyderabad", "state":"AP", "zip":"500030", "location":[17.3903703, 78.4752129],"fees":200, "tags":["Senior Secondary", "beautiful campus"], "rating":"3"}
+{"index":{"_index":"schools_gov", "_id":"2"}}
+{"name":"Government School", "description":"State Board Affiliation","street":"Hinjewadi", "city":"Pune", "state":"MH", "zip":"411057","location": [18.599752, 73.6821995], "fees":500, "tags":["Great Sports"], "rating":"4"}
+
+POST /index1,index2,index3/_search
+{
+   "query":{
+      "query_string":{
+         "query":"any_string"
+      }
+   }
+}
+
+POST /_all/_search
+{
+   "query":{
+      "query_string":{
+         "query":"any_string"
+      }
+   }
+}
+
+POST /school*/_search
+{
+   "query":{
+      "query_string":{
+         "query":"CBSE"
+      }
+   }
+}
+
+#从所有school*开头但是不包含schools_gov的索引中找出包含“CBSE”的JSON对象。
+POST /school*,-schools_gov/_search
+{
+   "query":{
+      "query_string":{
+         "query":"CBSE"
+      }
+   }
+}
+#ignore_unavailabl：如果不存在URL中的一个或多个索引，将不会发生错误或停止操作。
+POST /school*,book_shops/_search?ignore_unavailable=true
+{
+   "query":{
+      "query_string":{
+         "query":"CBSE"
+      }
+   }
+}
+#allow_no_indices：如果没有指定通配符的索引，true值会防止引发错误。
+POST  /schools_pri*/_search?allow_no_indices=true
+{
+   "query":{
+      "match_all":{}
+   }
+}
+
+POST  /schools/_close
+POST  /schools/_open
+
+#expand_wildcards：此参数决定通配符是否需要扩展为开放索引或封闭索引，或者两者兼有。该参数的值可以是open和close，也可以是none和all。
+POST /school*/_search?expand_wildcards=open
+{
+   "query":{
+      "match_all":{}
+   }
+}
+
+POST /schools/_search?pretty=true
+{
+   "query":{
+      "match_all":{}
+   }
+}
+
+POST  /schools/_search?filter_path=hits.total
+{
+   "query":{
+      "match_all":{}
+   }
+}
+
+POST /schools/_doc/4
+{"name":"City School", "description":"ICSE", "street":"West End", "city":"Meerut", "state":"UP", "zip":"250002", "location":[28.9926174, 77.692485], "fees":3500, "tags":["fully computerized"], "rating":"4.5"}
+
+
+POST /schools/_doc/1?version=1
+{"name":"Central School", "description":"CBSE Affiliation", "street":"Nagan","city":"paprola", "state":"HP", "zip":"176115", "location":[31.8955385, 76.8380405],"fees":2200, "tags":["Senior Secondary", "beautiful campus"], "rating":"3.3"}
+
+DELETE /tutorials
+POST /tutorials/_doc/1?op_type=create
+{
+   "Text":"this is chapter one"
+}
+
+GET /schools/_doc/1/_source
+GET /schools/_doc/1
+DELETE /schools/_doc/6
+POST  /schools_gov/_doc/1/_update
+{
+   "script":{
+      "lang": "painless",
+      "source": "ctx._source.fees+=params.inc", 
+      "params":{
+         "inc": 500
+      }
+   }
+}
+
+POST /_mget
+{
+   "docs":[
+      {
+         "_index": "schools", "_id": "1"
+      },
+      {
+         "_index":"schools_gev", "_id": "2"
+      }
+   ]
+}
+
+GET  /_search?q=name:central
+GET /schools,schools_gov/_search?q=name:model
+GET /schools/_search?q=tags:sports
+
+POST /schools/_search
+{
+   "query":{
+      "query_string":{
+         "query":"up"
+      }
+   }
+}
+POST  /schools/_search
+{
+   "aggs":{
+      "avg_fees":{"avg":{"field":"fees"}}
+   }
+}
+POST  /schools/_search
+{
+   "aggs":{
+      "avg_fees":{
+         "avg":{
+            "field":"feess",
+            "missing":0
+         }
+      }
+   }
+}
+
+#查询所有的name的总数
+POST /schools*/_search
+{
+   "aggs":{
+      "distinct_name_count":{"cardinality":{"field":"name"}}
+   }
+}
+
+POST  /schools/_search
+{
+   "aggs" : {
+      "fees_stats" : { "extended_stats" : { "field" : "fees" } }
+   }
+}
+
+POST /schools*/_search
+{
+   "aggs" : {
+      "max_fees" : { "max" : { "field" : "fees" } }
+   }
+}
+
+POST /schools*/_search
+{
+   "aggs" : {
+      "min_fees" : { "min" : { "field" : "fees" } }
+   }
+}
+
+POST /schools*/_search
+{
+   "aggs" : {
+      "total_fees" : { "sum" : { "field" : "fees" } }
+   }
+}
+
+DELETE /colleges
+PUT /colleges
+{
+   "settings" : {
+      "number_of_shards" : 1
+   },
+   "mappings" : {
+      
+         "_source" : { "enabled" : false }, "properties" : {
+            "college_name" : { "type" : "text" }, "college_type" : {"type":"text"}
+         }
+     
+   },
+   "aliases" : {
+      "alias_1" : {}, "alias_2" : {
+         "filter" : {
+            "term" : {"user" : "manu" }
+         },
+         "routing" : "manu"
+      }
+   }
+}
+
+GET /schools
+GET /colleges
+POST /schools/_close
+POST /schools/_open
+
+POST /_aliases
+{
+   "actions" : [
+      { "add" : { "index" : "schools", "alias" : "schools_pri" } }
+   ]
+}
+GET /schools_pri/_doc/1
+GET /schools/_settings
+POST /_analyze
+{
+   "analyzer" : "standard",
+   "text" : "you are reading this at tutorials point"
+}
+
+DELETE /_template/template_a
+POST /_template/template_a
+{
+   "index_patterns" : "tu*", 
+      "settings" : {
+         "number_of_shards" : 3
+   },
+   "mappings" : {
+         "_source" : { "enabled" : false }
+      
+   }
+}
+
+#该API帮助您提取特定索引的统计信息。您只需要发送一个带有索引网址和_stats关键字的获取请求。
+GET /schools/_stats
+#此API用于清除索引内存中的数据并将其迁移到索引存储中，还可以清除内部事务日志。
+GET /schools/_flush
+#默认情况下，ElasticSearch会定时刷新，但是您可以使用_refresh显式刷新一个或多个索引。
+GET /schools/_refresh
+#该API用于获取集群及其节点的信息，并对其进行更改。为了调用这个应用编程接口，我们需要指定节点名、地址或本地。
+GET /_nodes/_local
+GET /_nodes/127.0.0.1
+#该API用于通过附加health关键字来获取集群的健康状态
+GET /_cluster/health
+#这个API通过使用stats关键字来帮助检索关于集群的统计信息。该应用编程接口返回碎片号、存储大小、内存使用情况、节点数量、角色、操作系统和文件系统。
+GET /_cluster/stats
+#此API用于监控任何集群中的挂起任务。任务类似于创建索引、更新映射、分配碎片、失败碎片等。
+GET /_cluster/pending_tasks
+#此API用于将碎片从一个节点移动到另一个节点，或者取消任何分配或分配任何未分配的碎片。
+POST /_cluster/reroute
+{
+   "commands" : [ 
+      {
+         "move" :
+         {
+            "index" : "schools", "shard" : 2,
+            "from_node" : "nodea", "to_node" : "nodeb"
+         }
+      },
+      {
+         "allocate" : {
+            "index" : "test", "shard" : 1, "node" : "nodec"
+         }
+      }
+   ]
+}
+#该API帮助您检索集群中每个节点上当前热线程的信息。
+GET /_nodes/hot_threads
+
+
+POST /schools*/_search
+{
+   "query":{
+      "match_all":{}
+   }
+}
+
+
+POST /schools*/_search
+{
+   "query":{
+      "match" : {
+         "city":"pune"
+      }
+   }
+}
+
+POST /schools*/_search
+{
+   "query":{
+      "multi_match" : {
+         "query": "hyderabad",
+         "fields": [ "city", "state" ]
+      }
+   }
+}
+
+POST /schools/_search
+{
+   "query":{
+      "query_string":{
+         "query":"good faculty"
+      }
+   }
+}
+
+POST /schools/_search
+{
+   "query":{
+      "term":{"zip":"176115"}
+   }
+}
+
+POST /schools*/_search
+{
+   "query":{
+      "range":{
+         "rating":{
+            "gte":3.5
+         }
+      }
+   }
+}
+
+PUT /bankaccountdetails
+{
+   "mappings":{
+         "properties":{
+            "name":{ "type":"text"}, "date":{ "type":"date"},
+            "balance":{ "type":"double"}, "liability":{ "type":"double"}
+         }
+      }
+  
+}

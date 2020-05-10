@@ -1,0 +1,45 @@
+./filebeat -e -c hariko-nginx-elasticsearch.yml
+-c 配置文件
+-d debug启动
+
+./filebeat modules list
+./filebeat modules enable nginx 
+./filebeat modules disable nginx
+
+filebeat已经提供的module的模板
+
+nginx module 配置
+access:
+	enable: true
+	var.paths: ["/usr/local/nginx/logs/access.log*"]
+error:
+	enable: true
+    var.paths: ["/usr/local/nginx/logs/error.log*"]
+	
+	
+需要为elasticsearch安装plugin，73.2后版本不需要这些东西了
+ingest-user-agent.tar
+ingest-geoip.tar
+ingest-geoip-conf.tar
+https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-user-agent/ingest-user-agent-6.5.4.zip
+
+./elasticsearch-plugin install ingest-user-agent
+./elasticsearch-plugin install ingest-geoip
+./elasticsearch-plugin install ingest-geoip-conf
+
+
+
+./metricbeat modules list
+./metricbeat modules enable nginx 
+./metricbeat modules disable nginx
+
+nginx module 配置
+
+./metricbeat -c metric-nginx.yml
+安装仪表盘
+./metricbeat -c metric-nginx.yml setup --dashboards
+安装仪表盘
+./filebeat -c file-nginx.yml setup --dashboards
+
+cd /usr/app/logstash-7.3.2/bin/;./logstash -f ../config/logstash-nginx.conf
+cd /usr/app/elasticsearch-7.3.2/bin/;./elasticsearch -d

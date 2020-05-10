@@ -1,0 +1,138 @@
+1.vmstat
+#可以用来监控虚拟内存。可对操作系统的虚拟内存、IO、CPU等多个指标的整体情况进行监视。
+
+#Linux系统的内存分为物理内存和虚拟内存两种。物理内存是真实的，也就是物理内存条上的内存。而虚拟内存则是采用硬盘空间补充物理内存，将暂时不使用的内存页写到硬盘上以腾出更多的物理内存让有需要的进程使用。当这些已被腾出的内存页需要再次使用时才从硬盘（虚拟内存）中读回内存。这一切对于用户来说是透明的。通常对Linux系统来说，虚拟内存就是swap分区。
+
+hello@ubuntu:~$ vmstat
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0  10336 287032  16856 266904    0    9   556   278  155  452 15  4 79  2  0
+
+#内存方面：
+#swpd：已经使用的交换内存（kb）
+#free：空闲的物理内存（kb）
+#buff：用作缓冲区的内存数（kb）
+#cache：用作高速缓存的内存数（kb）
+#si、so 两列，表示磁盘和内存之间交换的频繁程度。
+#分析思路：
+#如果 si、so 数值长期很大并且free长期很小，表示物理内存不能满足需要，也就是内存不足。由于磁盘的性能比内存是慢很多的，所以如果存在大量的页面交换，那么系统的性能必然会受到很大影响。
+#CPU方面：
+#r：展示了正在执行和等待cpu资源的任务个数。当这个值超过了cpu个数，就会出现cpu瓶颈。
+#us：用户CPU时间。
+#sy：系统CPU时间。
+#id：空闲CPU时间。
+#wa：等等I/O CPU时间。
+#us+sy+id+wa=100%
+#分析思路：
+#如果 r 经常大于4，且id经常小于40，表面CPU的负荷很重。
+
+
+2.free
+
+#可以用来观察内存使用情况。
+
+hello@ubuntu:~$ free
+             total       used       free     shared    buffers     cached
+Mem:       1024708     735760     288948       3712      43352     291540
+-/+ buffers/cache:     400868     623840
+Swap:      1046524          0    1046524
+
+#total= used + free
+#分析思路：
+#当 –/+ buffers/cache中的free长时间接近0，且 swap used长时间比较大时，说明物理内存已经不够用了，需要升级内存或降低内存的使用量。
+
+3.pmap
+#格式 pmap pid
+#会详细显示该进程所用的内存情况。
+
+4.iostat
+
+#可以用来监控磁盘I/O的情况。
+
+hello@ubuntu:~$ iostat
+Linux 3.19.0-25-generic (ubuntu)     01/12/2017     _i686_    (1 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           5.02    5.66    4.47    1.92    0.00   82.94
+
+Device:            tps    kB_read/s    kB_wrtn/s    kB_read    kB_wrtn
+sda              35.98       599.77       179.38     644419     192732
+
+#显示结果为从系统开机到当前执行时刻的统计信息。
+
+#第一行显示系统版本、主机名、日期等信息。
+
+#avg-cpu：显示总体CPU使用情况统计信息。如果是多核CPU的话，这里取平均值。
+
+#Device： 显示各磁盘设备的IO统计信息。
+#主要关注点：
+
+#avg-cpu 的 %iowait：表明CPU用于等待I/O请求完成的时间。
+
+#Device 的 tps：每秒进程下发的I/O读写请求数量。
+
+hello@ubuntu:~$ iostat -x
+Linux 3.19.0-25-generic (ubuntu)     01/12/2017     _i686_    (1 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           5.51    1.66    5.25    1.89    0.00   85.69
+
+Device:     rrqm/s   wrqm/s     r/s     w/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+sda           0.20    10.88   31.60    4.14   660.97   131.62    44.36     0.44   12.45    7.26   52.10   1.94   6.95
+
+#显示和I/O相关的更详细的数据。
+#主要关注点：
+
+#avgqu-sz：是平均请求队列的长度。毫无疑问，队列长度越短越好。
+
+#await： 每一个IO请求的处理的平均时间（单位是微秒毫秒）。这里可以理解为IO的响应时间，一般地系统IO响应时间应该低于5ms，如果大于10ms就比较大了。这个时间包括了队列时间和服务时间，也就是说，一般情况下，await大于svctm，它们的差值越小，则说明队列时间越短，反之差值越大，队列时间越长，说明系统出了问题。
+
+#svctm 表示平均每次设备I/O操作的服务时间（以毫秒为单位）。如果svctm的值与await很接近，表示几乎没有I/O等待，磁盘性能很好，如果await的值远高于svctm的值，则表示I/O队列等待太长， 系统上运行的应用程序将变慢。
+
+#%util：在统计时间内所有处理IO时间，除以总共统计时间。例如，如果统计间隔1秒，该设备有0.8秒在处理IO，而0.2秒闲置，那么该设备的%util = 0.8/1 = 80%，所以该参数暗示了设备的繁忙程度。一般地，如果该参数是100%表示设备已经接近满负荷运行了（当然如果是多磁盘，即使%util是100%，因为磁盘的并发能力，所以磁盘使用未必就到了瓶颈）。
+#分析思路：
+
+#如果%util值长期处于100%左右，并且avgqu-sz的值比较大，同时await的值远大于svctm，可以认为磁盘的处理能力不够。
+
+#如果只有一个指标持续走高，需要结合mem指标来看，是否是由于内存空间不够导致磁盘的使用增加。
+
+
+5.mpstate
+
+#Multiprocessor Statistics的缩写。在多CPU的系统里，可以查看所有CPU的信息。
+
+hello@ubuntu:~$ mpstat
+Linux 3.19.0-25-generic (ubuntu)     01/12/2017     _i686_    (1 CPU)
+
+02:25:11 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+02:25:11 PM  all    1.20    0.03    0.60    0.05    0.00    0.00    0.00    0.00    0.00   98.12
+#虽然vmstat、iostat以及 top 也可以查看CPU信息，但是它们都是显示平均数，并不会显示每个CPU的情况。
+
+
+6.uptime
+
+#可以查看系统负载。显示的和top命令第一行一样。
+
+hello@ubuntu:~$ uptime
+ 14:54:25 up  3:36,  2 users,  load average: 0.00, 0.01, 0.05
+
+#当前时间 14:54:25
+
+#系统已运行时间 3:36
+
+#当前在线用户 2个
+
+#平均负载：一定时间内CPU任务队列的平均长度，是在一段时间内CPU正在处理以及等待CPU处理的进程数之和的统计信息。上面3个数分别是“最近一分钟系统的负载（0.00）、最近5分钟系统的负载（0.01）、最近15分钟系统的负载（0.05）”
+#分析思路：
+
+#如果load average指标的5分钟以及15分钟的值长 大于 CPU个数*CPU核数*0.7，并且us长时间比较高，说明CPU不够用，需要升级CPU或调整程序的算法降低CPU的使用率。
+
+7.ps
+
+#显示10个消耗CPU最多的进程：
+ps aux|sort -rnk +3|head -10
+
+#显示10个消耗内存最多的进程：
+ps aux|sort -rnk +4|head -10
+
+

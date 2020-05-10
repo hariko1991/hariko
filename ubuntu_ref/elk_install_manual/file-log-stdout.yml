@@ -1,0 +1,12 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /usr/local/nginx/logs/*.log
+  tags: ["nginx"]
+setup.template.settings:
+  ####指定索引的分区数
+  index.number_of_shards: 3  
+output.console:  #控制台输出
+  pretty: true
+  enable: true

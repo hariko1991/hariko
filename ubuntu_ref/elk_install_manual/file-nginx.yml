@@ -1,0 +1,18 @@
+filebeat.inputs:
+#- type: log
+#  enabled: true
+#  paths:
+#    - /usr/local/nginx/logs/*.log
+#  tags: ["nginx"]
+setup.template.settings:
+  ####指定索引的分区数
+  index.number_of_shards: 3  
+output.elasticsearch:  #指定ES的配置
+  hosts: ["192.168.0.127:9200","192.168.0.128:9200","192.168.0.129:9200"]
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enable: false
+setup.kibana:
+  host: "192.168.0.130:5601"
+output.logstash:
+  hosts: ["192.168.0.127:5044","192.168.0.128:5044","192.168.0.129:5044"]

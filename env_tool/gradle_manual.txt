@@ -1,0 +1,4 @@
+gradle build --refresh-dependencies
+
+
+gradle jacocoTestReport

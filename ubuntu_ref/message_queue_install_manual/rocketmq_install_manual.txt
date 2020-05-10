@@ -1,0 +1,211 @@
+集群部署方式
+2m-2s-async(主从异步)
+2m-2s-sync(主从同步)
+2m-noslave(仅master)
+RocketMQ部署比较灵活，推荐几种Broker的集群部署方式。
+1. 单个Master
+很显然，这种方式风险较大，一旦Broker重启或者宕机时，会导致整个服务不可用，不建议线上环境使用。
+2. 多Master模式
+一个集群无Slave，全是Master，例如2个Master或者3个Master
+    优点：配置简单，单个Master宕机或重启维护对应用无影响，在磁盘配置为RAID10时，即使机器宕机不可恢复情况下，由于RAID10磁盘非常可靠，消息也不会丢（异步刷盘丢失少量消息，同步刷盘一条不丢）。性能最高。
+    缺点：单台机器宕机期间，这台机器上未被消费的消息在机器恢复之前不可订阅，消息实时性会受到影响。
+3. 多Master多Slave模式，异步复制
+每个Master配置一个Slave，有多对Master-Slave，HA采用异步复制方式，主备有短暂消息延迟，毫秒级。
+    优点：即使磁盘损坏，消息丢失的非常少，且消息实时性不会受影响，因为Master宕机后，消费者仍然可以从Slave消费，此过程对应用透明，不需要人工干预。性能同多Master模式几乎一样。
+    缺点：Master宕机，磁盘损坏情况，会丢失少量消息。
+4. 多Master多Slave模式，同步双写
+每个Master配置一个Slave，有多对Master-Slave，HA采用同步双写方式，主备都写成功，向应用返回成功。
+    优点：数据与服务都无单点，Master宕机情况下，消息无延迟，服务可用性与数据可用性都非常高。
+    缺点：性能比异步复制模式略低，大约低10%左右，发送单个消息的RT会略高。
+
+1.下载http://mirrors.tuna.tsinghua.edu.cn/apache/rocketmq/4.5.2/rocketmq-all-4.5.2-bin-release.zip
+mv rocketmq-all-4.5.2-bin-release.zip /usr/mq/rocketmq/
+tar -zxvf rocketmq-all-4.5.2-bin-release.zip
+在rocketmq的home目录下创建store和logs目录
+在.bash_profile中添加环境变量配置
+sed -i "s/user.home/ROCKET_MQ_HOME/g" `grep user.home -rl ./`
+
+
+sed -i "s/192.168.0.127:9876;192.168.0.128:9876;192.168.0.129:9876/192.168.0.110:9876;192.168.0.111:9876/g"
+s
+runbroker.sh
+JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn512m -XX:PermSize=128m -XX:MaxPermSize=320m"
+runserver.sh
+JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn512m -XX:PermSize=128m -XX:MaxPermSize=320m"
+
+2.基础配置
+ROCKET_MQ_HOME=/usr/mq/rocketmq4.5.2/
+JAVA_HOME=/usr/java/jdk1.8.0_201/
+CLASSPATH=$JAVA_HOME/lib/
+PATH=$PATH:$JAVA_HOME/bin/:$ROCKET_MQ_HOME/bin/
+export PATH JAVA_HOME CLASSPATH ROCKET_MQ_HOME
+
+3.mq配置相关
+#所属集群名字 
+brokerClusterName=rocketmq-cluster 
+#broker名字，注意此处不同的配置文件填写的不一样 
+brokerName=broker-a|broker-b 
+#0 表示 Master，>0 表示 Slave 
+brokerId=0 
+#nameServer地址，分号分割 
+namesrvAddr=rocketmq-nameserver1:9876;rocketmq-nameserver2:9876 
+# 在发送消息时，自动创建服务器不存在的topic，默认创建的队列数 
+defaultTopicQueueNums=4 
+# 是否允许 Broker 自动创建Topic，建议线下开启，线上关闭 
+autoCreateTopicEnable=true 
+# 是否允许 Broker 自动创建订阅组，建议线下开启，线上关闭 
+autoCreateSubscriptionGroup=true 
+# Broker 对外服务的监听端口 
+listenPort=10911 
+# 删除文件时间点，默认凌晨 4点 
+deleteWhen=04 
+#文件保留时间，默认 48 小时 fileReservedTime=120 
+#commitLog每个文件的大小默认1G 
+mapedFileSizeCommitLog=1073741824 
+#ConsumeQueue每个文件默认存30W条，根据业务情况调整 
+mapedFileSizeConsumeQueue=300000 
+#destroyMapedFileIntervalForcibly=120000 
+#redeleteHangedFileInterval=120000 
+#检测物理文件磁盘空间 
+diskMaxUsedSpaceRatio=88 
+#存储路径 
+storePathRootDir=/usr/mq/rocketmq4.5.2/store/ 
+#commitLog 存储路径 
+storePathCommitLog=/usr/mq/rocketmq4.5.2/store/commitlog 
+#消费队列存储路径存储路径 
+storePathConsumeQueue=/usr/mq/rocketmq4.5.2/store/consumequeue
+#消息索引存储路径 
+storePathIndex=/usr/mq/rocketmq4.5.2/store/index
+#checkpoint 文件存储路径 
+storeCheckpoint=/usr/mq/rocketmq4.5.2/store/checkpoint
+#abort 文件存储路径 
+abortFile=/usr/mq/rocketmq4.5.2/store/abort
+#限制的消息大小 
+maxMessageSize=65536 
+#flushCommitLogLeastPages=4 
+#flushConsumeQueueLeastPages=2 
+#flushCommitLogThoroughInterval=10000 
+#flushConsumeQueueThoroughInterval=60000 
+#Broker 的角色 
+#- ASYNC_MASTER 异步复制Master 
+#- SYNC_MASTER 同步双写Master 
+#- SLAVE 
+brokerRole=ASYNC_MASTER 
+#刷盘方式 
+#- ASYNC_FLUSH 异步刷盘 
+#- SYNC_FLUSH 同步刷盘 
+flushDiskType=ASYNC_FLUSH #
+checkTransactionMessageEnable=false 
+#发消息线程池数量 
+#sendMessageThreadPoolNums=128 
+#拉消息线程池数量 #pullMessageThreadPoolNums=128
+
+4.启动(每个结点启动)
+mqnamesrv > /dev/null 2>&1 &
+ssh root@192.168.0.127 "source /etc/profile; sh /usr/app/rocketmq-4.5.2/bin/mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko-2m-2s-async/broker-a.properties;"
+
+192.168.0.127
+mqnamesrv &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko-2m-2s-async/broker-a.properties &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko-2m-2s-async/broker-c-s.properties &
+
+mqnamesrv &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko/broker-a.properties &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko/broker-b-s.properties &
+
+
+mqnamesrv &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko/broker-b.properties &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko/broker-a-s.properties &
+
+192.168.0.128
+mqnamesrv &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko-2m-2s-async/broker-b.properties &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko-2m-2s-async/broker-a-s.properties &
+
+192.168.0.129
+mqnamesrv &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko-2m-2s-async/broker-c.properties &
+mqbroker -c /usr/app/rocketmq-4.5.2/conf/hariko-2m-2s-async/broker-b-s.properties &
+
+5.数据清理
+mqshutdown broker
+mqshutdown namesrv
+清理日志，清理store
+
+
+然后清一下store，但别忘记重新建一下：
+# rm -rf /usr/app/rocketmq-4.5.2/store
+
+
+mkdir /usr/app/rocketmq-4.5.2/store/a-m
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/index
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/checkpoint
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/abort
+
+mkdir /usr/app/rocketmq-4.5.2/store/c-s
+mkdir /usr/app/rocketmq-4.5.2/store/c-s/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/c-s/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/c-s/index
+mkdir /usr/app/rocketmq-4.5.2/store/c-s/checkpoint
+
+mkdir /usr/app/rocketmq-4.5.2/store/b-m
+mkdir /usr/app/rocketmq-4.5.2/store/b-m/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/b-m/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/b-m/index
+mkdir /usr/app/rocketmq-4.5.2/store/b-m/checkpoint
+
+mkdir /usr/app/rocketmq-4.5.2/store/a-s
+mkdir /usr/app/rocketmq-4.5.2/store/a-s/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/a-s/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/a-s/index
+
+mkdir /usr/app/rocketmq-4.5.2/store/c-m
+mkdir /usr/app/rocketmq-4.5.2/store/c-m/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/c-m/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/c-m/index
+
+mkdir /usr/app/rocketmq-4.5.2/store/b-s
+mkdir /usr/app/rocketmq-4.5.2/store/b-s/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/b-s/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/b-s/index
+
+6.启动rocketmq-console控制台
+java -jar target/rocketmq-console-ng-1.0.0.jar > /dev/null 2>&1 &
+
+
+http://192.168.0.124:8080/hariko/
+
+
+7.安装注意事项
+a>store和logs目录必需清楚
+b>同一台机的两个broker端口必需相差10以上
+c>启动时顺序先namesrv后broker,关闭时先broker后namesrv
+d>broker的master和slave交叉在不同的机器上
+
+
+
+
+mkdir /usr/app/rocketmq-4.5.2/store/a-m
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/a-m/index
+
+
+mkdir /usr/app/rocketmq-4.5.2/store/b-m
+mkdir /usr/app/rocketmq-4.5.2/store/b-m/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/b-m/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/b-m/index
+
+mkdir /usr/app/rocketmq-4.5.2/store/a-s
+mkdir /usr/app/rocketmq-4.5.2/store/a-s/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/a-s/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/a-s/index
+
+
+mkdir /usr/app/rocketmq-4.5.2/store/b-s
+mkdir /usr/app/rocketmq-4.5.2/store/b-s/commitlog
+mkdir /usr/app/rocketmq-4.5.2/store/b-s/consumequeue
+mkdir /usr/app/rocketmq-4.5.2/store/b-s/index

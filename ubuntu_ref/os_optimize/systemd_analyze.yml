@@ -1,0 +1,90 @@
+systemd-analyze blame
+sudo systemctl list-unit-files --type=service | grep enabled
+
+##关闭网络服务,改为手工控制
+sudo systemctl mask NetworkManager.service
+sudo systemctl mask networking.service
+sudo systemctl unmask NetworkManager.service
+##NetworkManager networking 的区别
+##NetworkManager控制的是netpaln下的配置
+##networking控制的是/etc/network/interface来固定ip /etc/systemd/resolved.conf 来修改dns
+sudo systemctl disable systemd-networkd-wait-online.service
+
+##修改apt日常更新服务,延迟启动时间
+sudo systemctl edit apt-daily.timer
+/etc/systemd/system/timers.target.wants
+
+sudo systemctl disable NetworkManager-wait-online.service
+sudo systemctl enable NetworkManager-wait-online.service
+##开机动画信息
+sudo systemctl mask plymouth-quit-wait.service
+sudo systemctl unmask plymouth-quit-wait.service
+sudo systemctl disable bluetooth.service
+##需要启动vmware-workstation-server.service之后在启动
+sudo systemctl disable vmware.service
+##初始化菜单欢迎消息
+sudo systemctl disable motd-news.service
+
+sudo systemctl mask vmware-USBArbitrator.service
+sudo systemctl disable vmware-USBArbitrator.service
+sudo systemctl disable vmware-workstation-server.service
+##是一个计算机发展的遗物，如果你使用拨号接入互联网的话，保留它，否则你不需要它。
+sudo systemctl disable pppd-dns.service
+##是一个潜在的安全风险。它是 AccountsService 的一部分，AccountsService 允许程序获得或操作用户账户信息。
+sudo systemctl disable accounts-daemon.service
+
+##该服务是一个被 dbus 激活的守护进程，用于提供移动宽频（2G/3G/4G）接口，如果你没有该接口，无论是内置接口，还是通过如蓝牙配对的电话，以及 USB 适配器，那么你也无需该服务。
+sudo systemctl disable ModemManager.service
+
+#痕迹追踪
+sudo systemctl mask bolt.service
+
+#查看cpu的hz
+watch -n 0 "cat /proc/cpuinfo | grep -i mhz"
+
+#如果是dell的本子
+sudo apt-get install i8kutils
+
+#安装显卡驱动
+sudo apt-get-repository ppa:bumblebee/stable
+sudo apt-get-repository ppa:ubuntu-x-swat/x-updates
+sudo apt-get udpate
+sudo apt-get install bumblebee bumblebee-nvidia
+
+##Nvidia自带一个命令行工具可以查看显存的使用情况：
+nvidia-smi
+##显示cpu的温度
+sensors
+
+#系统启动时间分析
+systemd-analyze
+
+#把cpu风扇的限制使用在50%以下
+echo "50" | sudo tee /sys/devices/system/cpu/intel_pstate/max_perf_pct
+
+#切换显卡
+echo IGD > /sys/kernel/debug/vgaswitcheroo/switch   
+echo OFF > /sys/kernel/debug/vgaswitcheroo/switch 
+
+#检查操作系统
+uname -a
+#查看gpu显卡
+lspci | grep -i nvidia
+#查看显示型号和推荐的显卡
+ubuntu-drivers devices
+#添加显卡的驱动源
+add-apt-repository ppa:graphics-drivers/ppa
+
+#修改grub后需要进行更新
+update-grub2
+
+#查看电池相关信息  alt+f2调出命令快捷窗口
+gnome-power-statistics
+cd /sys/class/power_sullpy/BAT0/subsystem
+
+#查看电脑有哪些显卡
+lspci -k | grep -A 2 -i 'VGA'
+
+#切换显卡的工作模式
+Usage: /usr/bin/prime-select nvidia|intel|query
+

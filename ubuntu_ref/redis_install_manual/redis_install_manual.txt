@@ -1,0 +1,172 @@
+install redis on 192.168.0.121(master)
+
+cd /usr/local/src
+
+wget http://download.redis.io/releases/redis-5.0.3.tar.gz
+
+tar zxvf redis-5.0.3.tar.gz 
+
+mkdir /usr/local/redis
+
+指定安装目录
+make PREFIX=/usr/local/redis install
+
+程序做软连接到bin目录
+ln -s /usr/local/redis/bin/redis-cli /usr/local/bin/redis-cli
+ln -s /usr/local/redis/bin/redis-sentinel /usr/local/bin/redis-sentinel
+ln -s /usr/local/redis/bin/redis-server /usr/local/bin/redis-server
+
+复制配置文件，在源码包里有sentinel.conf和redis.conf文件，复制到/etc/redis/目录下，如果有多个实例，建议改名，如本实例用的redis端口是7021，sentinel是17021
+cp /usr/local/src/redis-5.0.3/redis.conf /etc/redis/redis_7021.conf 
+cp /usr/local/src/redis-5.0.3/sentinel.conf /etc/redis/sentinel_17021.conf 
+
+
+做成一个服务，在源码包里的utils目录下的redis_init_script文件复制到/etc/init.d/下，并且改名成redis，以后就可以通过这个程序进行关闭和开启了。
+cp /usr/local/src/redis-5.0.3/utils/redis_init_script /etc/init.d/redis 
+
+
+改/etc/init.d/redis文件（后面会给出redis程序的代码），使得开启和关闭，以及关闭的时候需要输入密码（假设redis需要认证）。
+
+
+mkdir /var/run/redis/
+mkdir /var/log/redis/
+mkdir /var/lib/redis/
+
+
+mkdir /var/lib/redis_7021
+mkdir /var/lib/sentinel_17021
+
+cluster
+sed 's/7021/7022/g' redis_7021.conf > redis_7022.conf
+sed 's/27027/27028/g' sentinel_27027.conf > sentinel_27028.conf
+
+查看集群结点
+cluster nodes
+查看集群信息
+cluster info
+槽位信息
+cluster slots  
+以客户端方式登录其中一台机器
+redis-cli -h 192.168.0.161 -p 7021
+redis-cli -h 192.168.0.161 -p 7021 -c -a hariko 
+
+
+redis5.0以后可以以redis-cli搭建集群
+redis-cli --cluster help
+创建集群主从节点   --cluster-replicas 1   1:1 搭建集群   2   1:2  搭建集群   -a 密钥
+redis-cli --cluster create 192.168.0.161:7021 192.168.0.161:7022 192.168.0.161:7023 192.168.0.161:7024 192.168.0.161:7025 192.168.0.161:7026 --cluster-replicas 1 -a hariko
+添加集群主节点
+redis-cli --cluster add-node 192.168.163.132:6382 192.168.163.132:6379
+删除节点 
+redis-cli --cluster del-node 192.168.163.132:6384 f6a6957421b80409106cb36be3c7ba41f3b603ff
+检查集群
+redis-cli --cluster check 192.168.163.132:6384 --cluster-search-multiple-owners
+集群信息查看
+redis-cli --cluster info 192.168.163.132:6384
+修复集群
+redis-cli --cluster fix 192.168.163.132:6384 --cluster-search-multiple-owners
+设置集群的超时时间 
+redis-cli --cluster set-timeout 192.168.163.132:6382 10000
+集群中执行相关命令
+redis-cli --cluster call 192.168.163.132:6381 config set requirepass cc
+redis-cli -a cc --cluster call 192.168.163.132:6381 config set masterauth cc
+redis-cli -a cc --cluster call 192.168.163.132:6381 config rewrite
+查看k1的hash到哪里
+cluster keyslot k1  
+关闭集群必需一个一个关
+redis-cli -h 192.168.0.161 -p 7021 -c -a hariko 
+shutdown
+
+停机时先迁移槽位
+redis-cli --cluster reshard 192.168.0.161:7027 --cluster-from 迁出nodeId --cluster-to 迁入nodeId --cluster-slots 1364
+先删除slave
+redis-cli --cluster del-node 192.168.0.161:7028 f6a6957421b80409106cb36be3c7ba41f3b603ff
+redis-cli --cluster del-node 192.168.0.161:7027 f6a6957421b80409106cb36be3c7ba41f3b603ff
+
+加入结点
+redis-cli --cluster add-node 192.168.0.161:7027 192.168.0.161:7021 --cluster-salve --cluster-master-id 主结点nodeId
+redis-cli --cluster add-node 192.168.0.161:7028 192.168.0.161:7021 --cluster-salve --cluster-master-id 主结点nodeId
+redis-cli --cluster reshard 192.168.0.161:7021
+
+
+1：添加一个用户
+useradd redis
+
+2：对配置文件里的相关目录进行授权
+chown -R redis.redis /var/lib/redis_7021/
+chown -R redis.redis /var/lib/sentinel_17021
+chown -R redis.redis /var/log/redis/
+chown -R redis.redis /var/run/redis/
+chown -R redis.redis /etc/redis/
+
+
+
+1：redis 开启、关闭
+root@redis1:~# /etc/init.d/redis start
+Starting Redis server...
+
+root@redis1:~# /etc/init.d/redis stop
+passwd: *********************
+Stopping ...
+Redis stopped
+
+2：sentinel 开启、关闭
+root@redis1:~# su redis -c "redis-sentinel /etc/redis/sentinel_17021.conf"
+
+root@redis2:~# redis-cli -h 192.168.0.121 -p 17021
+192.168.1.55:17021>REDIS_SHUTDOWN
+
+3：通过ps查看这些进程是否都是通过redis用户运行。
+
+
+
+
+
+useradd sentinel
+
+chown -R sentinel.sentinel /var/lib/sentinel_17021 
+
+chown root.root /etc/redis/
+chown -R sentinel.sentinel /etc/redis/sentinel_17021.conf  
+chmod 664 /etc/redis/sentinel_17021.conf 
+
+chgrp sentinel /var/log/redis/
+chmod 775 /var/log/redis/
+#删除日志文件或则执行下面2步骤
+#chown -R sentinel.sentinel /var/log/redis/sentinel_17021.log 
+#chmod 664 /var/log/redis/sentinel_17021.log 
+
+#如果配置了脚本，也需要修改权限
+chgrp sentinel /opt/bin/notify.py
+
+这样设置了之后，开启redis不变，开启sentine需要执行：
+
+su sentinel -c "redis-sentinel /etc/redis/sentinel_17021.conf"
+
+
+
+
+
+
+4.启动
+alias redis_bin="/usr/local/bin/redis-cli -h 192.168.0.121 -p 7021"
+alias redis_start="/usr/local/bin/redis-server /etc/redis/redis_7021.conf"
+alias local_host="hostname --fqdn"
+alias local_ip="host $local_host 2>/dev/null | awk '{print $NF}'"
+alias sentinel_start="su redis -c 'redis-sentinel /etc/redis/sentinel_17021.conf'"
+alias sentinel_bin="/usr/local/bin/redis-cli -h 192.168.0.121 -p 17021"
+
+
+
+
+5.清理
+/var/lib/redis_7021
+/var/log/redis/
+
+
+
+
+安装注意事项：
+a>防火墙
+b>bing 0.0.0.0
+c>哨兵的myid必需不能为一样的
