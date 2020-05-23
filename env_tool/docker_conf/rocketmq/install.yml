@@ -1,0 +1,33 @@
+  broker-a-m:
+    image: registry.cn-hangzhou.aliyuncs.com/leonardo/rocketmq-broker:4.3.1
+    container_name: broker-a-m
+    hostname: broker-a-m
+    ##restart: always
+    ports:
+      - "10909:10909"
+    networks:
+      - "hariko_net"
+    depends_on:
+      - "namesrv"
+    volumes:
+      - "/home/hariko/temp/docker/rocketMQ/logs/broker/a-m:/opt/logs"
+      - "/home/hariko/temp/docker/rocketMQ/store/broker/a-m:/opt/store"
+      - "/home/hariko/temp/docker/rocketMQ/data/broker/a-m:/opt/data"
+      - "/home/hariko/temp/docker/rocketMQ/config/broker/a-m:/opt/conf"
+
+  broker-a-s:
+    image: registry.cn-hangzhou.aliyuncs.com/leonardo/rocketmq-broker:4.3.1
+    container_name: broker-a-s
+    hostname: broker-a-s
+    networks:
+      - "hariko_net"
+    depends_on:
+      - "namesrv"
+    ##restart: always
+    ports:
+      - "10911:10911"
+    volumes:
+      - "/home/hariko/temp/docker/rocketMQ/logs/broker/a-s:/opt/logs"
+      - "/home/hariko/temp/docker/rocketMQ/store/broker/a-s:/opt/store"
+      - "/home/hariko/temp/docker/rocketMQ/data/broker/a-s:/opt/data"
+      - "/home/hariko/temp/docker/rocketMQ/config/broker/a-s:/opt/conf"
