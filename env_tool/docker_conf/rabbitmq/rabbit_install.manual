@@ -1,0 +1,33 @@
+docker pull rabbitmq:3.8.3-management
+
+docker run -dit --network=hariko_net --ip 172.18.0.34 --name rabbitmq-a --hostname rabbitmq-a -v /home/hariko/temp/docker/rabbitmq/a/:/var/lib/rabbitmq --hostname rabbitmq-a -e RABBITMQ_DEFAULT_VHOST=rabbitmq-a  -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=admin -e RABBITMQ_ERLANG_COOKIE='rabbitmqCookie' rabbitmq:3.8.3-management
+
+docker run -dit --network=hariko_net --ip 172.18.0.35 --name rabbitmq-b --hostname rabbitmq-b -v /home/hariko/temp/docker/rabbitmq/b/:/var/lib/rabbitmq --hostname rabbitmq-b -e RABBITMQ_DEFAULT_VHOST=rabbitmq-b  -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=admin -e RABBITMQ_ERLANG_COOKIE='rabbitmqCookie' --link rabbitmq-a:rabbitmq-a rabbitmq:3.8.3-management
+
+docker run -dit --network=hariko_net --ip 172.18.0.36 --name rabbitmq-c --hostname rabbitmq-c -v /home/hariko/temp/docker/rabbitmq/c/:/var/lib/rabbitmq --hostname rabbitmq-c -e RABBITMQ_DEFAULT_VHOST=rabbitmq-c  -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=admin -e RABBITMQ_ERLANG_COOKIE='rabbitmqCookie' --link rabbitmq-a:rabbitmq-a --link rabbitmq-b:rabbitmq-b rabbitmq:3.8.3-management
+
+
+docker run -d --hostname rabbitmq01 --name rabbitmqCluster01 -v /home/soft/rabbitmqcluster/rabbitmq01:/var/lib/rabbitmq -p 15672:15672 -p 5672:5672 -e RABBITMQ_ERLANG_COOKIE='rabbitmqCookie' rabbitmq:3.7-management
+
+docker run -d --hostname rabbitmq02 --name rabbitmqCluster02 -v /home/soft/rabbitmqcluster/rabbitmq02:/var/lib/rabbitmq -p 15673:15672 -p 5673:5672 -e RABBITMQ_ERLANG_COOKIE='rabbitmqCookie'  --link rabbitmqCluster01:rabbitmq01 rabbitmq:3.7-management
+
+docker run -d --hostname rabbitmq03 --name rabbitmqCluster03 -v /home/soft/rabbitmqcluster/rabbitmq03:/var/lib/rabbitmq -p 15674:15672 -p 5674:5672 -e RABBITMQ_ERLANG_COOKIE='rabbitmqCookie'  --link rabbitmqCluster01:rabbitmq01 --link rabbitmqCluster02:rabbitmq02  rabbitmq:3.7-management
+
+docker exec -it rabbitmq-a /bin/sh
+rabbitmqctl stop_app
+rabbitmqctl reset
+rabbitmqctl start_app
+
+docker exec -it rabbitmq-b /bin/sh
+rabbitmqctl stop_app
+rabbitmqctl reset
+rabbitmqctl join_cluster --ram rabbit@rabbitmq-a
+rabbitmqctl start_app
+exit
+
+docker exec -it rabbitmq-c /bin/sh
+rabbitmqctl stop_app
+rabbitmqctl reset
+rabbitmqctl join_cluster --ram rabbit@rabbitmq-a
+rabbitmqctl start_app
+exit
