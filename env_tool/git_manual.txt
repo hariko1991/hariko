@@ -1,4 +1,4 @@
-将本地的仓库关联到GitHub
+*将本地的仓库关联到GitHub
 git remote add origin https://github.com/HarikoJoy/demo1.git
 echo "# hariko" >> README.md
 git init
@@ -7,6 +7,10 @@ git commit -m "first commit"
 git remote add origin https://github.com/hariko1991/hariko.git
 git push -u origin master
 
+*记住用户名密码
+git config --global credential.helper store
+git config --list
+git config --global --unset credential.helper
 
 一、 Git 常用命令速查
 
