@@ -19,11 +19,11 @@ rabbitmqctl reset
 rabbitmqctl start_app
 
 docker exec -it rabbitmq-b /bin/sh
-rabbitmqctl stop_app
-rabbitmqctl reset
-rabbitmqctl join_cluster --ram rabbit@rabbitmq-a
-rabbitmqctl start_app
-exit
+rabbitmqctl stop_app;
+rabbitmqctl reset;
+rabbitmqctl join_cluster --ram rabbit@rabbitmq-a;
+rabbitmqctl start_app;
+exit;
 
 docker exec -it rabbitmq-c /bin/sh
 rabbitmqctl stop_app
