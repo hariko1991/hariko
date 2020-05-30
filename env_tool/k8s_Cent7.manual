@@ -1,0 +1,247 @@
+一、linux环境相关配置 
+#IPADDR=192.168.1.160
+#NETMASK=255.255.255.0
+#GATEWAY=192.168.1.1
+#DNS1=119.29.29.29
+#DNS2=8.8.8.8
+yum install openssh-server
+#关闭swap
+# 查看已配置的swap
+cat /proc/swaps
+# 关闭swap
+swapoff -a
+# 永久关闭swap， 删除/etc/fstab文件中与swap相关的所有配置项
+# Set SELinux in permissive mode (effectively disabling it)
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+# 安装三个组件
+# 查看主机名称
+hostname
+# 设置主机名称
+hostnamectl set-hostname [your-host-name]
+# 停止firewall
+systemctl stop firewalld.service
+systemctl disable firewalld.service
+# 安装docker
+yum install docker
+systemctl enable docker
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": ["https://43jugwwr.mirror.aliyuncs.com"]
+}
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+yum install ntp
+ntpdate ntp1.aliyun.com
+cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+vim  /etc/sysconfig/clock
+ZONE="Asia/Shanghai"
+UTC=false
+ARC=false
+/usr/sbin/ntpdate -u cn.pool.ntp.org
+hwclock -r
+vim /etc/rc.d/rc.local
+/usr/sbin/ntpdate -u cn.pool.ntp.org> /dev/null 2>&1; /sbin/hwclock -w
+vim /etc/crontab
+00 10 * * * root /usr/sbin/ntpdate -u cn.pool.ntp.org > /dev/null 2>&1; /sbin/hwclock -w 
+
+
+
+1.date                        //查看本地
+2.hwclock --show                  //查看硬件的时间
+3.如果硬件的时间是对不上，那就对硬件的时间进行修改、
+4.hwclock --set --date '2016-01-08  15:15:15'    //设置硬件时间
+5.hwclock  --hctosys                //设置系统时间和硬件时间同步
+6.clock -w                        //保存时钟
+二、配置阿里源并下载相关镜像
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=http://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=http://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg http://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+# 设置kubelet开机启动
+systemctl enable --now kubelet
+
+kubeadm config images list
+1.docker pull镜像拉取命令
+docker pull docker.io/mirrorgcrio/kube-apiserver:v1.18.3
+docker pull docker.io/mirrorgcrio/kube-controller-manager:v1.18.3
+docker pull docker.io/mirrorgcrio/kube-scheduler:v1.18.3
+docker pull docker.io/mirrorgcrio/kube-proxy:v1.18.3
+docker pull docker.io/mirrorgcrio/pause:3.2
+docker pull docker.io/mirrorgcrio/etcd:3.4.3-0
+docker pull docker.io/mirrorgcrio/coredns:1.6.7
+
+
+
+docker pull quay-mirror.qiniu.com/coreos/flannel:v0.12.0-amd64
+
+2.docker tag镜像重命名
+docker tag docker.io/mirrorgcrio/kube-apiserver:v1.18.3 k8s.gcr.io/kube-apiserver:v1.18.3
+docker tag docker.io/mirrorgcrio/kube-controller-manager:v1.18.3 k8s.gcr.io/kube-controller-manager:v1.18.3
+docker tag docker.io/mirrorgcrio/kube-scheduler:v1.18.3 k8s.gcr.io/kube-scheduler:v1.18.3
+docker tag docker.io/mirrorgcrio/kube-proxy:v1.18.3 k8s.gcr.io/kube-proxy:v1.18.3
+docker tag docker.io/mirrorgcrio/pause:3.2 k8s.gcr.io/pause:3.2
+docker tag docker.io/mirrorgcrio/etcd:3.4.3-0 k8s.gcr.io/etcd:3.4.3-0
+docker tag docker.io/mirrorgcrio/coredns:1.6.7 k8s.gcr.io/coredns:1.6.7
+
+
+docker tag quay-mirror.qiniu.com/coreos/flannel:v0.12.0-amd64 quay.io/coreos/flannel:v0.12.0-amd64
+
+3.docker image rm命令删除原始镜像
+docker rmi docker.io/mirrorgcrio/kube-proxy:v1.18.3
+docker rmi docker.io/mirrorgcrio/kube-controller-manager:v1.18.3
+docker rmi docker.io/mirrorgcrio/kube-scheduler:v1.18.3
+docker rmi docker.io/mirrorgcrio/kube-proxy:v1.18.3
+docker rmi docker.io/mirrorgcrio/pause:3.2
+docker rmi docker.io/mirrorgcrio/etcd:3.4.3-0
+docker rmi docker.io/mirrorgcrio/coredns:1.6.7
+
+docker rmi quay-mirror.qiniu.com/coreos/flannel:v0.12.0-amd64
+
+三、设置k8s内核参数
+cat <<EOF > /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables=1
+net.bridge.bridge-nf-call-iptables=1
+net.ipv4.ip_forward=1
+EOF
+sysctl -p /etc/sysctl.d/k8s.conf
+#启动kubernetes，并设置开机自启动
+systemctl enable kubelet && systemctl start kubelet
+#注意，此时kubelet是无法正常启动的，可以查看/var/log/messages有报错信息
+#等待执行初始化之后即可正常，为正常现象，以上步骤请在Kubernetes的所有节点上执行
+
+四、初始化集群
+#master节点，执行初始化命令
+#--apiserver-advertise-address：指定用 Master 的哪个IP地址与 Cluster的其他节点通信。
+#--service-cidr：指定Service网络的范围，即负载均衡VIP使用的IP地址段。
+#--pod-network-cidr：指定Pod网络的范围，即Pod的IP地址段。
+#--image-repository：Kubenetes默认Registries地址是 k8s.gcr.io，在国内并不能访问 gcr.io，在1.13版本中我们可以增加-image-repository参数，默认值是 k8s.gcr.io，将其指定为阿里云镜像地址：registry.aliyuncs.com/google_containers。
+#--kubernetes-version=v1.13.3：指定要安装的版本号。
+#–ignore-preflight-errors=：忽略运行时的错误，例如上面目前存在[ERROR NumCPU]和[ERROR Swap]，忽略这两个报错就是增加
+#–ignore-preflight-errors=NumCPU
+#–ignore-preflight-errors=Swap
+kubeadm init --kubernetes-version=v1.18.3 --apiserver-advertise-address 192.168.0.171 --pod-network-cidr=10.244.0.0/16
+
+
+#To start using your cluster, you need to run the following as a regular user:
+#主从结点都要执行 并且要把主结点 /etc/kubernetes/admin.conf 复制到从结点对应目录
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+#master节点上配置kubectl
+#所有结点都要执行
+echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >> /etc/profile
+source /etc/profile 
+echo $KUBECONFIG
+
+五、安装pod网络
+sysctl net.bridge.bridge-nf-call-iptables=1
+vim kube-flannel.yaml
+kubectl apply -f kube-flannel.yml
+
+
+#You should now deploy a pod network to the cluster.
+#https://kubernetes.io/docs/concepts/cluster-administration/addons/
+kubectl apply -f [podnetwork].yaml
+#Then you can join any number of worker nodes by running the following on each as root:
+kubeadm join 192.168.0.171:6443 --token sw4rw8.lowckx8xsvspzp2r --discovery-token-ca-cert-hash sha256:e000d595d1823b9b9696e2ea2868f246ac1032b109cb8d4aca59ed8f30af6f98
+systemctl status kubelet
+journalctl -xeu kubelet
+
+https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+https://199.232.4.133/coreos/flannel/master/Documentation/kube-flannel.yml
+podsecuritypolicy.policy/psp.flannel.unprivileged created
+clusterrole.rbac.authorization.k8s.io/flannel configured
+clusterrolebinding.rbac.authorization.k8s.io/flannel unchanged
+serviceaccount/flannel unchanged
+configmap/kube-flannel-cfg unchanged
+daemonset.apps/kube-flannel-ds-amd64 created
+daemonset.apps/kube-flannel-ds-arm64 created
+daemonset.apps/kube-flannel-ds-arm created
+daemonset.apps/kube-flannel-ds-ppc64le created
+daemonset.apps/kube-flannel-ds-s390x created
+
+六、校验安装结果
+#查看master的pod状态
+kubectl get pods --all-namespaces -o wide
+kubectl get nodes
+kubectl get cs
+#全部都为ready表示启动成功，如果有pod状态不为running，节点notReady，可以通过日志去排查问题
+journalctl -f -u kubelet
+#也可以通过如下地址去查看一些常见的问题 init或者join失败，kubeadm reset重置，再试
+#https://blog.csdn.net/qq_34857250/article/details/82562514
+
+
+#在master结点查看加入集群命令
+kubeadm token create --print-join-command 
+#token过期，节点重新加入集群 查看token值
+kubeadm token list
+#创建一条永久的token，不会过期，不安全不推荐
+kubeadm token create --ttl 0
+blxtni.0eq2uh88bublagaz
+
+#获取ca证书sha256编码hash值
+openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+e000d595d1823b9b9696e2ea2868f246ac1032b109cb8d4aca59ed8f30af6f98
+#通过新生成的 token 和 ca 证书sha256编码hash值重新组装得到有效的加入集群命令，加入之前，可以把之前加入的节点先删除
+kubectl delete node k8s-node1
+kubeadm reset
+scp admin.conf root@192.168.0.172:/etc/kubernetes/
+rm -rf $HOME/.kube
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >> /etc/profile
+source /etc/profile 
+echo $KUBECONFIG
+
+kubeadm join 192.168.0.171:6443 --token blxtni.0eq2uh88bublagaz --discovery-token-ca-cert-hash sha256:e000d595d1823b9b9696e2ea2868f246ac1032b109cb8d4aca59ed8f30af6f98
+kubeadm join 192.168.0.171:6443 --token s7oubu.c7u3e49q69mpfe2p --discovery-token-ca-cert-hash sha256:e000d595d1823b9b9696e2ea2868f246ac1032b109cb8d4aca59ed8f30af6f98
+kubeadm join 192.168.0.171:6443 --token fktmtt.i2cxzbt4ytdl5xrt --discovery-token-ca-cert-hash sha256:e000d595d1823b9b9696e2ea2868f246ac1032b109cb8d4aca59ed8f30af6f98
+
+七、安装dashboard
+#创建Dashboard的yaml文件
+wget https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+sed -i 's/k8s.gcr.io/loveone/g' kubernetes-dashboard.yaml
+sed -i '/targetPort:/a\ \ \ \ \ \ nodePort: 30001\n\ \ type: NodePort' kubernetes-dashboard.yaml
+#更换kubernetes-dashboard.yaml的image源，更换成可以访问的image
+vim kubernetes-dashboard.yaml
+image: registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.8.3
+kubectl create -f kubernetes-dashboard.yaml
+#部署Dashboard
+kubectl create -f kubernetes-dashboard.yaml
+kubectl delete -f kubernetes-dashboard.yaml
+#创建完成后，检查相关服务运行状态
+kubectl get deployment kubernetes-dashboard -n kube-system
+kubectl get pods -n kube-system -o wide
+kubectl get services -n kube-system
+netstat -ntlp|grep 30001
+#在Firefox浏览器输入Dashboard访问地址：
+https://192.168.137.4:30001
+#查看访问Dashboard的认证令牌
+kubectl create serviceaccount  dashboard-admin -n kube-system
+kubectl create clusterrolebinding  dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+kubectl describe secrets -n kube-system $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+
+
+
+
+//永久性的修改主机名称，重启后能保持修改后的。
+hostnamectl set-hostname xxx    
+//删除hostname
+hostnamectl set-hostname ""
+hostnamectl set-hostname "" --static
+hostnamectl set-hostname "" --pretty
+
+service sshd start
+
+kubeadm init --kubernetes-version=v1.11.2 --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.11.90 --token-ttl 0
