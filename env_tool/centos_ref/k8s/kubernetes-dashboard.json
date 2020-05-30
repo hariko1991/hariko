@@ -1,0 +1,31 @@
+{
+    "apiVersion": "v1",
+    "kind": "Namespace",
+    "metadata": {
+        "creationTimestamp": "2020-05-30T13:26:27Z",
+        "deletionTimestamp": "2020-05-30T13:33:37Z",
+        "managedFields": [
+            {
+                "apiVersion": "v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:status": {
+                        "f:phase": {}
+                    }
+                },
+                "manager": "kubectl",
+                "operation": "Update",
+                "time": "2020-05-30T13:26:27Z"
+            }
+        ],
+        "name": "kubernetes-dashboard",
+        "resourceVersion": "47949",
+        "selfLink": "/api/v1/namespaces/kubernetes-dashboard",
+        "uid": "5bb95e4e-06dc-44e1-af7b-9ab83e580ba2"
+    },
+    "spec": {
+    },
+    "status": {
+        "phase": "Terminating"
+    }
+}

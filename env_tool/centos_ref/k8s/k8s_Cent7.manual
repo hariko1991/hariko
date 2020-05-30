@@ -245,3 +245,124 @@ hostnamectl set-hostname "" --pretty
 service sshd start
 
 kubeadm init --kubernetes-version=v1.11.2 --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.11.90 --token-ttl 0
+
+
+八、安装最新版本dashvoad v2.0.1
+https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.1/aio/deploy/recommended.yaml
+199.232.68.133  raw.githubusercontent.com
+##单独放一个 namespace，下面是创建 kubernetes-dashboard namespace
+kubectl  create namespace kubernetes-dashboard
+##把生成的免费证书存放在 $HOME/certs 目录下，取名为 tls.crt 和 tls.key
+mkdir $HOME/certs
+##创建 ssl 证书 secret
+kubectl create secret generic kubernetes-dashboard-certs --from-file=$HOME/certs -n kubernetes-dashboard
+##拉取 k8s dashboard yaml 配置
+wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta6/aio/deploy/recommended.yaml
+wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.1/aio/deploy/recommended.yaml
+#修改 Deployment yaml 配置，具体修改见下面配置
+$ vim recommended.yaml
+
+# 把创建 kubernetes-dashboard-certs Secret 注释掉，前面已通过命令创建
+
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  labels:
+#    k8s-app: kubernetes-dashboard
+#  name: kubernetes-dashboard-certs
+#  namespace: kubernetes-dashboard
+#type: Opaque
+
+# 添加ssl证书路径，关闭自动更新证书，添加多长时间登出
+
+      containers:
+      - args:
+        #- --auto-generate-certificates
+        - --tls-cert-file=/tls.crt
+        - --tls-key-file=/tls.key
+        - --token-ttl=3600
+##部署 k8s dashboard
+kubectl  apply -f recommended.yaml
+##查看
+kubectl  get pods -n kubernetes-dashboard
+##创建 admin-user 管理员 yaml 配置
+vim create-admin.yaml
+##创建
+kubectl apply -f create-admin.yaml
+##查看登陆token
+kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
+kubectl get pods --namespace=kubernetes-dashboard -o wide
+
+##证书
+下面是生成 k8s dashboard 域名证书方法，任何一种都可以
+
+    通过 https://freessl.cn 网站，在线生成免费1年的证书
+    通过 Let’s Encrypt 生成 90天 免费证书
+    通过 Cert-Manager 服务来生成和管理证书
+
+
+hariko.com
+_dnsauth
+202005290950263jm02ixi3f8wae13ij3ytchg0yvg8l76ilg8vk83yoo3xef050
+
+
+
+九、问题
+##命名空间正在中止状态
+kubectl get ns kubernetes-dashboard -o json > kubernetes-dashboard.json
+##删除dev.json的中的删除文件中spec.finalizers字段
+kubectl proxy --port=8081
+curl -k -H "Content-Type: application/json" -X PUT --data-binary @kubernetes-dashboard.json http://127.0.0.1:8081/api/v1/namespaces/kubernetes-dashboard/finalize
+
+##修改pod配置
+kubectl -n kubernetes-dashboard edit svc kubernetes-dashboard
+##查看所有命名空间下的服务
+kubectl get svc --all-namespaces -o wide
+kubectl get pods --all-namespaces -o wide
+kubectl get deployment --all-namespaces -o wide
+
+
+
+十、证书创建
+mkdir dashboard-certs
+
+cd dashboard-certs/
+
+#创建命名空间
+kubectl create namespace kubernetes-dashboard
+
+# 创建key文件
+openssl genrsa -out dashboard.key 2048
+
+#证书请求
+openssl req -days 36000 -new -out dashboard.csr -key dashboard.key -subj '/CN=dashboard-cert'
+
+#自签证书
+openssl x509 -req -in dashboard.csr -signkey dashboard.key -out dashboard.crt
+
+#创建kubernetes-dashboard-certs对象
+kubectl create secret generic kubernetes-dashboard-certs --from-file=dashboard.key --from-file=dashboard.crt -n kubernetes-dashboard
+
+
+十一、删除dashboard
+kubectl get secret,sa,role,rolebinding,services,deployments,rs --namespace=kubernetes-dashboard | grep dashboard
+
+kubectl delete deployment kubernetes-dashboard --namespace=kubernetes-dashboard
+kubectl delete service kubernetes-dashboard  --namespace=kubernetes-dashboard
+kubectl delete role kubernetes-dashboard-minimal --namespace=kubernetes-dashboard
+kubectl delete rolebinding kubernetes-dashboard-minimal --namespace=kubernetes-dashboard
+kubectl delete sa kubernetes-dashboard --namespace=kubernetes-dashboard
+kubectl delete secret kubernetes-dashboard-certs --namespace=kubernetes-dashboard
+kubectl delete secret kubernetes-dashboard-key-holder --namespace=kubernetes-dashboard
+
+kubectl delete secret kubernetes-dashboard-csrf --namespace=kubernetes-dashboard
+kubectl delete secret kubernetes-dashboard-token-ft7ts --namespace=kubernetes-dashboard
+
+kubectl delete role kubernetes-dashboard --namespace=kubernetes-dashboard
+kubectl delete rolebinding kubernetes-dashboard --namespace=kubernetes-dashboard
+
+kubectl delete deployment dashboard-metrics-scraper --namespace=kubernetes-dashboard
+
+kubectl delete service dashboard-metrics-scraper  --namespace=kubernetes-dashboard
+kubectl delete pod dashboard-metrics-scraper-6b4884c9d5-cxwrt  --namespace=kubernetes-dashboard
+kubectl delete pod kubernetes-dashboard-7bfbb48676-q7dmk  --namespace=kubernetes-dashboard
