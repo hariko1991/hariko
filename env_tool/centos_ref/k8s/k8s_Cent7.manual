@@ -293,6 +293,8 @@ kubectl apply -f create-admin.yaml
 kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
 kubectl get pods --namespace=kubernetes-dashboard -o wide
 
+kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep kubernetes-dashboard | awk '{print $1}')
+kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep dashboard-admin | awk '{print $1}')
 ##证书
 下面是生成 k8s dashboard 域名证书方法，任何一种都可以
 
@@ -366,3 +368,21 @@ kubectl delete deployment dashboard-metrics-scraper --namespace=kubernetes-dashb
 kubectl delete service dashboard-metrics-scraper  --namespace=kubernetes-dashboard
 kubectl delete pod dashboard-metrics-scraper-6b4884c9d5-cxwrt  --namespace=kubernetes-dashboard
 kubectl delete pod kubernetes-dashboard-7bfbb48676-q7dmk  --namespace=kubernetes-dashboard
+
+
+十二、token
+kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep dashboard-admin | awk '{print $1}')
+
+Name:         dashboard-admin-token-k9zww
+Namespace:    kubernetes-dashboard
+Labels:       <none>
+Annotations:  kubernetes.io/service-account.name: dashboard-admin
+              kubernetes.io/service-account.uid: 591251cc-f62d-4455-82a3-e29d7aef5ae7
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+ca.crt:     1025 bytes
+namespace:  20 bytes
+token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IkpBYlZPX2hiVENoZ3FINm1nUWxWZEtZZlZjLU53SmNiX3RpSGFEcXpVSWsifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tazl6d3ciLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiNTkxMjUxY2MtZjYyZC00NDU1LTgyYTMtZTI5ZDdhZWY1YWU3Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmVybmV0ZXMtZGFzaGJvYXJkOmRhc2hib2FyZC1hZG1pbiJ9.AVClglu5tUA_k55Y-ovdPWZ-GqH71RJpqFzX_kJwjq8oDfX00muyHK3n8Cq-kitv79xLAGRy3k21HSGM_9H5gLD_mh5YvsGx3YlRS8uJMKjAdfNtqSIn6KFQcDoNwMudlOhHlcqmZVYzr6G8DCsSWrzaPk9FY4SLkTlrRCMTITz8v3NxatXiHio7o1lEAGORB2ON3nGQJxlaDUUB5X_Jq8YRRNvFz2HanmIvbOBNQVMtA3htAmfzs-6rRyvWX7g03ybw-SOYbhJwEsj3v_KchA_Q7SvpYAuKqhKg_vqutXHTTpXivA42OznmBqnCHJwbInANZwEGObbD3-i7tDytkQ
