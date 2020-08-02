@@ -1,0 +1,9 @@
+https://github.com/hariko1991/hariko.git
+
+
+使用国内镜像，目前已知Github国内镜像网站有github.com.cnpmjs.org和git.sdut.me/。
+速度根据各地情况而定，在clone某个项目的时候将github.com替换为github.com.cnpmjs.org即可。
+
+
+https://github.com.cnpmjs.org/hariko1991/hariko.git
+https://git.sdut.me/hariko1991/hariko.git

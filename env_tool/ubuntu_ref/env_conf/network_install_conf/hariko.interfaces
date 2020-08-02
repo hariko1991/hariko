@@ -1,0 +1,20 @@
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+auto wlp0s20f3
+iface wlp0s20f3 inet static
+#iface wlp0s20f3 inet dhcp
+netmask 255.255.255.0
+#network 192.168.1.3
+gateway 192.168.0.1
+address 192.168.0.161
+#broadcast 192.168.0.255
+
+#pre-up ip link set wlp0s20f3 up
+#pre-up iwconfig wlp0s20f3 essid ssid
+wpa-ssid hariko 
+wpa-psk liangzi417
+#wpa-psk 8157507586ad14ff5db54089458a9ce7936217f53a9e304becc98d59fc43fcf0   
+
+dns-nameservers 192.168.0.1 114.114.114.114

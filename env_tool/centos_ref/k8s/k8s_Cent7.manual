@@ -33,6 +33,8 @@ sudo tee /etc/docker/daemon.json <<-'EOF'
 EOF
 sudo systemctl daemon-reload
 sudo systemctl restart docker
+
+
 yum install ntp
 ntpdate ntp1.aliyun.com
 cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
@@ -42,10 +44,6 @@ UTC=false
 ARC=false
 /usr/sbin/ntpdate -u cn.pool.ntp.org
 hwclock -r
-vim /etc/rc.d/rc.local
-/usr/sbin/ntpdate -u cn.pool.ntp.org> /dev/null 2>&1; /sbin/hwclock -w
-vim /etc/crontab
-00 10 * * * root /usr/sbin/ntpdate -u cn.pool.ntp.org > /dev/null 2>&1; /sbin/hwclock -w 
 
 
 
