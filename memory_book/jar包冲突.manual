@@ -1,0 +1,22 @@
+package com.hariko.nacos;
+
+public class Test {
+
+    public static void main(String[] args) {
+        try {
+            JSON.parseObject("...", Feature.OrderedField);
+        } catch (Throwable e) {
+            String loc = "";
+            String urlLoc = "";
+            try {
+                loc = Feature.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+                urlLoc = URLDecoder.decode(loc, "UTF-8");
+            } catch (Throwable e2) {
+                
+            } 
+            
+            logger.info("** loc=" + LOCATION + "; URLLoc=" + URLLOCATION);
+        }
+
+    }
+}
