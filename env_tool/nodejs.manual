@@ -46,6 +46,8 @@ vue init webpack vue001
 cd vue001
 ## 安装完成之后，会在我们的项目目录firstVue文件夹中多出一个node_modules文件夹，这里边就是我们项目需要的依赖包资源。
 cnpm install
+## 集成element
+cnpm i element-ui -S
 ## 会用热加载的方式运行我们的应用，热加载可以让我们在修改完代码后不用手动刷新浏览器就能实时看到修改后的效果。
 ## 其中的“run”对应的是package.json文件中，scripts字段中的dev，也就是 node build/dev-server.js命令的一个快捷方式。
 npm run dev
