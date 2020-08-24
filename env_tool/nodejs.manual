@@ -2,6 +2,7 @@
 node -v
 npm -v
 cnpm -v
+webpack -v
 ## 查看npm的仓库地址
 npm config get registry
 ## 设置npm的全局的仓库地址
@@ -35,7 +36,10 @@ cnpm install -g vue-cli
 cnpm install -g @vue-cli
 cnpm install -g @vue/cli
 cnpm install -g webpack
+cnpm install -g webpack-cli
 cnpm install -g @vue/cli-init
+cnpm install --save-dev webpack
+cnpm install -g nrm
 
 ## 这个命令的意思是初始化一个项目，其中webpack是构建工具，也就是整个项目是基于webpack的。其中firstVue是整个项目文件夹的名称，这个文件夹会自动生成在你指定的目录中
 vue init webpack vue001
