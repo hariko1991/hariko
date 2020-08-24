@@ -1,0 +1,78 @@
+{
+	"workbench.iconTheme": "vscode-icons",
+	"editor.fontSize": 20,
+	"editor.renderIndentGuides": false,
+	"files.autoSave": "afterDelay",
+	"liveSassCompile.settings.formats": [
+		{
+			"format": "expanded",
+			"extensionName": ".css",
+			"savePath": "/css"
+		},
+		{
+			"extensionName": ".min.css",
+			"format": "compressed",
+			"savePath": "/css"
+		}
+	],
+	"liveSassCompile.settings.excludeList": [
+		"**/node_modules/**",
+		".vscode/**"
+	],
+	"liveSassCompile.settings.generateMap": true,
+	"easysass.formats": [
+		{
+			"format": "expanded",
+			"extension": ".css"
+		},
+		{
+			"format": "compressed",
+			"extension": ".min.css"
+		}
+	],
+	"easysass.targetDir": "./css/",
+	"background.customImages": [
+		"file:///D://222.png"
+	],
+	"background.useDefault": false,
+	"background.style": {
+		"content": "''",
+		"pointer-events": "none",
+		"position": "absolute",
+		"z-index": "99999",
+		"width": "102%",
+		"height": "100%",
+		"background-position": "0%",
+		"background-repeat": "no-repeat",
+		"opacity": 0.3
+	},
+	"editor.quickSuggestions": {
+		"strings": true
+	},
+	"cssrem.rootFontSize": 12,
+	"cssrem.autoRemovePrefixZero": false,
+	"cssrem.fixedDigits": 3,
+	"beautify.language": {
+		"js": {
+			"type": [
+				"javascript",
+				"json"
+			],
+			"filename": [
+				".jshintrc",
+				".jsbeautify"
+			]
+		},
+		"css": [
+			"css",
+			"scss"
+		],
+		"html": [
+			"htm",
+			"vue",
+			"html"
+		]
+	},
+	"workbench.colorTheme": "Dark-Dracula",
+	"vetur.format.defaultFormatter.html": "js-beautify-html"
+}
