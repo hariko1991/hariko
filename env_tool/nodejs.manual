@@ -58,3 +58,5 @@ vue ui
 二、vscode安装及配置
 
 1.基本配置见 vscode_conf.json
+2.正常情况下会报无效的命令 无法加载文件 D:\inst\subject\nodejs\node_global\cnpm.ps1，因为在此系统上禁止运行脚本。
+set-ExecutionPolicy RemoteSigned
