@@ -16,8 +16,8 @@ shell> cd mysql
 shell> mkdir mysql-files
 shell> chown mysql:mysql mysql-files
 shell> chmod 750 mysql-files
-shell> bin/mysqld --initiallize --user=mysql
-gJlFshUqY4_:   aX2Ok8+hKsaN
+shell> bin/mysqld --initiallize --user=mysql  或者 bin/mysqld --initialize-insecure --user=mysql
+  注: 第一种方式存在一个密码 gJlFshUqY4_:   aX2Ok8+hKsaN  第二种方式: 空密码
 shell> bin/mysql_ssl_rsa_setup
 shell> bin/mysqld_safe --user=mysql &
 shell> cp support-files/mysql.server /etc/init.d/mysql.server
