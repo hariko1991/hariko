@@ -1,0 +1,2 @@
+## 指定python地址安装
+npm install --python=C:\Users\Dell\.windows-build-tools\python27\python.exe
