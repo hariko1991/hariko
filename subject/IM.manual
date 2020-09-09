@@ -3,3 +3,6 @@ npm install --python=C:\Users\Dell\.windows-build-tools\python27\python.exe
 
 npm install -g node-gyp
 npm config set node_gyp "node D:/inst/subject/nodejs/node_global/node_modules/node-gyp/bin/node-gyp.js"
+
+.npmrc文件
+electron_mirror=https://npm.taobao.org/mirrors/electron/
