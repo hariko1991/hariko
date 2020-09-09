@@ -6,3 +6,4 @@ npm config set node_gyp "node D:/inst/subject/nodejs/node_global/node_modules/no
 
 .npmrc文件
 electron_mirror=https://npm.taobao.org/mirrors/electron/
+set "ELECTRON_MIRROR=http://npm.taobao.org/mirrors/electron" && npm install
