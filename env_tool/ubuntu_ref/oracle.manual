@@ -35,6 +35,9 @@ docker_oracle11 =
    )
 )
 
+TNS_ADMIN D:\inst\subject\instantclient_11_2
+NLS_LANG AMERICAN_AMERICA.AL32UTF8
+
 五、数据库oracle的常用命令
 lsnrctl status
 
