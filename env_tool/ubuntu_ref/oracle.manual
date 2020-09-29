@@ -23,3 +23,19 @@ ALTER PROFILE DEFAULT LIMIT PASSWORD_LIFE_TIME UNLIMITED;
 额外可能需要的操作
 alter database mount;
 alter database open;
+
+四、相关连接工具配置
+docker_oracle11 =
+ (DESCRIPTION =
+   (ADDRESS_LIST =
+     (ADDRESS = (PROTOCOL = TCP)(HOST = www.hariko.vip)(PORT = 8820))
+   )
+   (CONNECT_DATA =
+     (SERVICE_NAME = helowinXDB)
+   )
+)
+
+五、数据库oracle的常用命令
+lsnrctl status
+
+
