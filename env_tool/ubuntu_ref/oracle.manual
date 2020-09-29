@@ -1,0 +1,25 @@
+一、容器docker相关
+docker pull registry.cn-hangzhou.aliyuncs.com/helowin/oracle_11g
+docker run -dit --network hariko_net --ip 172.18.0.20 --name oracle_11_8820 -p 8820:1521 registry.cn-hangzhou.aliyuncs.com/helowin/oracle_11g
+docker start oracle_11_8820
+docker exec -it oracle_11_8820 /bin/sh
+二、切换root用户进行相关配置
+su root helowin
+在/etc/profile文件中配置
+export ORACLE_HOME=/home/oracle/app/oracle/product/11.2.0/dbhome_2 
+export ORACLE_SID=helowin
+export PATH=$ORACLE_HOME/bin:$PATH
+创建软链接
+ln -s $ORACLE_HOME/bin/sqlplus /usr/bin
+三、登录oracle进行相关配置
+sqlplus /nolog
+conn /as sysdba
+alter user system identified by system;
+alter user sys identified by sys;
+create user hariko identified by hariko;
+grant connect,resource,dba to hariko;
+ALTER PROFILE DEFAULT LIMIT PASSWORD_LIFE_TIME UNLIMITED;
+
+额外可能需要的操作
+alter database mount;
+alter database open;
