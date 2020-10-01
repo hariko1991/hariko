@@ -1,0 +1,15 @@
+安装ifupdown服务
+sudo apt install ifupdown
+修改配置
+sudo vim /etc/network/interfaces
+通过执行以下命令查看，gateway是你的网关地址
+route -n
+netstat -r
+
+sudo systemctl restart network
+
+如果上述命令不能重启网卡，可依次尝试以下命令直到网卡重启成功为止
+service network restart
+service network-manager restart
+service networking restart
+nmcli c reload
